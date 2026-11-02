@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+Frontend/node_modules/
+server/node_modules/
+
+# Production builds
+dist/
+Frontend/dist/
+build/
+
+# Environment variables
+.env
+.env.*
+.env.local
+Frontend/.env
+Frontend/.env.*
+server/.env
+server/.env.*
+!.env.example
+!Frontend/.env.example
+!server/.env.example
+!server/.env.production.example
+
+# Uploads
+uploads/*
+server/uploads/*
+!server/uploads/.gitkeep
+Frontend/uploads/*
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.sw?
+

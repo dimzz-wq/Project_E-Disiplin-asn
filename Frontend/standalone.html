@@ -1,0 +1,1588 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>E-Disiplin ASN — Platform Terpadu Pengawasan Disiplin Pegawai</title>
+<meta name="description" content="Platform digital terpadu pengawasan kedisiplinan ASN."/>
+<meta name="theme-color" content="#1e3a5f"/>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><rect width='24' height='24' rx='6' fill='%232563eb'/><path d='M12 3L4 6.5v5.5c0 4.8 3.4 9.3 8 10.4 4.6-1.1 8-5.6 8-10.4V6.5L12 3z' fill='white'/></svg>"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<style>
+/* ── Reset & Base ── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d1117;--surface:#161b22;--surface2:#1c2128;--border:#30363d;--border-light:#21262d;
+  --primary:#2563eb;--primary-dark:#1d4ed8;--primary-light:#3b82f6;
+  --accent:#7c3aed;--success:#16a34a;--warning:#d97706;--danger:#dc2626;--info:#0ea5e9;
+  --text-primary:#f0f6fc;--text-secondary:#8b949e;--text-muted:#6e7681;
+  --success-bg:#0d2818;--warning-bg:#271d0a;--danger-bg:#270d0d;--info-bg:#0a1f2e;
+  --shadow:0 1px 3px rgba(0,0,0,.4),0 4px 16px rgba(0,0,0,.3);
+  --shadow-lg:0 8px 32px rgba(0,0,0,.5);
+  --radius:8px;--radius-lg:12px;--radius-xl:16px;
+  --font:'Inter',system-ui,sans-serif;--mono:'JetBrains Mono',monospace;
+}
+html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--text-primary);font-size:14px;line-height:1.5}
+a{text-decoration:none;color:inherit}
+button{font-family:var(--font);cursor:pointer}
+input,select,textarea{font-family:var(--font)}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+/* ── Layout ── */
+#app{display:flex;height:100vh;overflow:hidden}
+#login-screen{display:flex;align-items:center;justify-content:center;width:100%;min-height:100vh;background:var(--bg);padding:24px}
+#sidebar{width:240px;min-width:240px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;transition:width .25s}
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+#topbar{height:56px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:12px;flex-shrink:0}
+#content{flex:1;overflow-y:auto;padding:24px}
+
+/* ── Login ── */
+.login-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-xl);padding:40px;width:100%;max-width:420px;box-shadow:var(--shadow-lg)}
+.login-logo{display:flex;align-items:center;gap:12px;margin-bottom:32px}
+.login-logo-icon{width:48px;height:48px;background:linear-gradient(135deg,#1e3a5f,#2563eb);border-radius:12px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px #2563eb44}
+.login-logo h1{font-size:20px;font-weight:800;letter-spacing:-.5px}
+.login-logo span{font-size:11px;color:var(--text-muted);font-weight:500}
+.form-label{display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:6px;letter-spacing:.4px;text-transform:uppercase}
+.form-input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;color:var(--text-primary);font-size:14px;transition:.2s;outline:none;margin-bottom:16px}
+.form-input:focus{border-color:var(--primary);box-shadow:0 0 0 3px #2563eb22}
+.form-select{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;color:var(--text-primary);font-size:14px;margin-bottom:16px;outline:none;cursor:pointer}
+.form-select:focus{border-color:var(--primary)}
+.login-btn{width:100%;padding:12px;background:linear-gradient(135deg,#2563eb,#1d4ed8);border:none;border-radius:var(--radius);color:#fff;font-weight:700;font-size:15px;cursor:pointer;transition:.2s;margin-top:4px}
+.login-btn:hover{transform:translateY(-1px);box-shadow:0 4px 16px #2563eb44}
+.demo-tag{display:inline-flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:6px 12px;font-size:12px;color:var(--text-muted);margin-bottom:24px;width:100%}
+.alert-err{background:var(--danger-bg);border:1px solid #dc262644;border-radius:var(--radius);padding:10px 14px;color:#f87171;font-size:13px;margin-bottom:16px;display:none}
+
+/* ── Sidebar ── */
+.sidebar-header{padding:16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.sidebar-logo{width:36px;height:36px;background:linear-gradient(135deg,#1e3a5f,#2563eb);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sidebar-brand{font-size:13px;font-weight:800;letter-spacing:-.3px}
+.sidebar-sub{font-size:10px;color:var(--text-muted)}
+.sidebar-section{padding:16px 12px 4px;font-size:10px;font-weight:700;color:var(--text-muted);letter-spacing:.8px;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:var(--radius);margin:1px 8px;cursor:pointer;color:var(--text-secondary);font-size:13px;font-weight:500;transition:.15s;position:relative;border:none;background:none;width:calc(100% - 16px);text-align:left}
+.nav-item:hover{background:var(--surface2);color:var(--text-primary)}
+.nav-item.active{background:linear-gradient(135deg,#1e3a5f,#2563eb22);color:var(--primary-light);font-weight:600}
+.nav-item.active::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:60%;background:var(--primary);border-radius:0 2px 2px 0}
+.nav-badge{margin-left:auto;background:#dc262699;color:#fca5a5;font-size:10px;font-weight:700;padding:1px 6px;border-radius:999px}
+.sidebar-footer{margin-top:auto;padding:12px;border-top:1px solid var(--border)}
+.user-pill{display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface2);border-radius:var(--radius);cursor:pointer}
+.user-avatar{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0}
+.user-name{font-size:12px;font-weight:600;line-height:1.3}
+.user-role-label{font-size:10px;color:var(--text-muted)}
+.logout-btn{width:100%;margin-top:8px;padding:8px;background:var(--danger-bg);border:1px solid #dc262633;border-radius:var(--radius);color:#f87171;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:.15s}
+.logout-btn:hover{background:#dc262622}
+
+/* ── Topbar ── */
+.topbar-title{font-size:15px;font-weight:700;color:var(--text-primary);margin-right:auto}
+.topbar-badge{display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:999px;font-size:12px;color:var(--text-secondary)}
+
+/* ── Buttons ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;border:none;transition:.15s;white-space:nowrap}
+.btn-primary{background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff}
+.btn-primary:hover{opacity:.9;transform:translateY(-1px)}
+.btn-outline{background:none;border:1px solid var(--border);color:var(--text-secondary)}
+.btn-outline:hover{background:var(--surface2);color:var(--text-primary)}
+.btn-ghost{background:none;border:none;color:var(--text-secondary)}
+.btn-ghost:hover{background:var(--surface2);color:var(--text-primary)}
+.btn-danger{background:var(--danger-bg);border:1px solid #dc262633;color:#f87171}
+.btn-sm{padding:6px 12px;font-size:12px}
+.btn-icon{padding:7px;border-radius:var(--radius)}
+
+/* ── Cards ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
+.card-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px}
+.card-title{font-size:14px;font-weight:700;color:var(--text-primary)}
+.card-body{padding:20px}
+
+/* ── Stats grid ── */
+.grid-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 20px;display:flex;align-items:center;gap:14px;transition:.2s}
+.stat-card:hover{border-color:var(--primary);transform:translateY(-2px)}
+.stat-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.stat-icon.blue{background:linear-gradient(135deg,#1e3a5f,#2563eb22);color:var(--primary-light)}
+.stat-icon.green{background:linear-gradient(135deg,#0d2818,#16a34a22);color:#4ade80}
+.stat-icon.yellow{background:linear-gradient(135deg,#271d0a,#d97706);color:#fbbf24}
+.stat-icon.red{background:linear-gradient(135deg,#270d0d,#dc2626);color:#f87171}
+.stat-icon.purple{background:linear-gradient(135deg,#1d0f3d,#7c3aed);color:#a78bfa}
+.stat-icon.pink{background:linear-gradient(135deg,#2d0a1a,#db2777);color:#f472b6}
+.stat-label{font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}
+.stat-value{font-size:26px;font-weight:800;color:var(--text-primary);line-height:1}
+.stat-sub{font-size:11px;color:var(--text-muted);margin-top:4px}
+
+/* ── Page header ── */
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;gap:12px;flex-wrap:wrap}
+.page-title{font-size:22px;font-weight:800;color:var(--text-primary)}
+.page-sub{font-size:13px;color:var(--text-muted);margin-top:2px}
+
+/* ── Table ── */
+.table-wrap{overflow-x:auto;border-radius:var(--radius)}
+table{width:100%;border-collapse:collapse}
+thead th{background:var(--bg);padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.5px;text-transform:uppercase;border-bottom:1px solid var(--border);white-space:nowrap}
+tbody tr{border-bottom:1px solid var(--border-light);transition:.15s}
+tbody tr:hover{background:var(--surface2)}
+tbody td{padding:12px 14px;font-size:13px;color:var(--text-secondary);vertical-align:middle}
+tbody tr:last-child{border-bottom:none}
+
+/* ── Badges ── */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap}
+.badge-success{background:#0d2818;color:#4ade80;border:1px solid #16a34a33}
+.badge-warning{background:#271d0a;color:#fbbf24;border:1px solid #d9770633}
+.badge-danger{background:#270d0d;color:#f87171;border:1px solid #dc262633}
+.badge-info{background:#0a1f2e;color:#38bdf8;border:1px solid #0ea5e933}
+.badge-purple{background:#1d0f3d;color:#a78bfa;border:1px solid #7c3aed33}
+.badge-gray{background:var(--surface2);color:var(--text-muted);border:1px solid var(--border)}
+
+/* ── Filter bar ── */
+.filter-bar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
+.search-box{position:relative;flex:1;min-width:200px}
+.search-box input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:9px 12px 9px 36px;color:var(--text-primary);font-size:13px;outline:none;transition:.2s}
+.search-box input:focus{border-color:var(--primary)}
+.search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-muted);pointer-events:none;width:16px;height:16px}
+.filter-sel{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:9px 12px;color:var(--text-secondary);font-size:13px;outline:none;cursor:pointer}
+.filter-sel:focus{border-color:var(--primary)}
+
+/* ── Pagination ── */
+.pagination{display:flex;align-items:center;justify-content:space-between;margin-top:16px;flex-wrap:wrap;gap:8px}
+.page-info{font-size:12px;color:var(--text-muted)}
+.page-btns{display:flex;gap:4px}
+.page-btn{width:32px;height:32px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:var(--radius);background:none;color:var(--text-secondary);cursor:pointer;font-size:13px;font-weight:600;transition:.15s}
+.page-btn:hover,.page-btn.active{background:var(--primary);border-color:var(--primary);color:#fff}
+
+/* ── Modal ── */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;display:flex;align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(4px)}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-xl);width:100%;max-width:600px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg)}
+.modal-header{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.modal-title{font-size:16px;font-weight:700}
+.modal-body{padding:24px}
+.modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px}
+.modal-close{background:none;border:none;color:var(--text-muted);cursor:pointer;padding:4px;border-radius:var(--radius)}
+.modal-close:hover{color:var(--text-primary);background:var(--surface2)}
+
+/* ── Forms ── */
+.form-group{margin-bottom:16px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.fi{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;color:var(--text-primary);font-size:13px;outline:none;transition:.2s}
+.fi:focus{border-color:var(--primary);box-shadow:0 0 0 3px #2563eb22}
+.fta{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;color:var(--text-primary);font-size:13px;outline:none;resize:vertical;min-height:100px}
+.fta:focus{border-color:var(--primary)}
+.fl{display:block;font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px}
+.req{color:var(--danger)}
+
+/* ── Charts ── */
+.chart-container{position:relative;height:240px}
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+
+/* ── Welcome banner ── */
+.welcome-banner{border-radius:var(--radius-lg);padding:24px 32px;color:#fff;margin-bottom:20px;position:relative;overflow:hidden}
+.wb-circle1{position:absolute;top:-40%;right:-5%;width:260px;height:260px;background:rgba(255,255,255,.06);border-radius:50%}
+.wb-circle2{position:absolute;bottom:-50%;right:15%;width:180px;height:180px;background:rgba(255,255,255,.04);border-radius:50%}
+.wb-content{position:relative;z-index:1}
+.wb-title{font-size:22px;font-weight:800;margin-bottom:4px}
+.wb-sub{font-size:13px;opacity:.8}
+.wb-badges{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.wb-badge{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.25);border-radius:999px;padding:4px 12px;font-size:11px;font-weight:600;backdrop-filter:blur(4px)}
+
+/* ── Alert banners ── */
+.alert{padding:10px 14px;border-radius:var(--radius);font-size:13px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.alert-success{background:var(--success-bg);border:1px solid #16a34a33;color:#4ade80}
+.alert-error{background:var(--danger-bg);border:1px solid #dc262633;color:#f87171}
+
+/* ── Loading ── */
+.loading{display:flex;align-items:center;justify-content:center;padding:48px;color:var(--text-muted);gap:10px;font-size:13px}
+.spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Timeline ── */
+.timeline{display:flex;flex-direction:column;gap:0}
+.tl-item{display:flex;gap:14px;position:relative;padding-bottom:20px}
+.tl-item:last-child{padding-bottom:0}
+.tl-item:not(:last-child) .tl-line::after{content:'';position:absolute;left:50%;top:28px;bottom:-4px;width:2px;background:var(--border);transform:translateX(-50%)}
+.tl-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative;z-index:1}
+.tl-dot.tl-blue{background:var(--info-bg);border:2px solid var(--info)}
+.tl-dot.tl-green{background:var(--success-bg);border:2px solid var(--success)}
+.tl-dot.tl-yellow{background:var(--warning-bg);border:2px solid var(--warning)}
+.tl-body{flex:1;padding-top:2px}
+.tl-action{font-size:13px;font-weight:600;color:var(--text-primary)}
+.tl-meta{font-size:11px;color:var(--text-muted);margin-top:2px}
+
+/* ── Utility ── */
+.hidden{display:none!important}
+.flex{display:flex}.gap8{gap:8px}.gap12{gap:12px}.items-center{align-items:center}
+.fw6{font-weight:600}.fw7{font-weight:700}.fw8{font-weight:800}
+.fs11{font-size:11px}.fs12{font-size:12px}.fs13{font-size:13px}
+.c-muted{color:var(--text-muted)}.c-primary{color:var(--primary-light)}
+.mono{font-family:var(--mono)}
+.mb0{margin-bottom:0}.mb4{margin-bottom:4px}.mb8{margin-bottom:8px}.mb12{margin-bottom:12px}.mb16{margin-bottom:16px}.mb20{margin-bottom:20px}
+.text-center{text-align:center}
+.empty-state{text-align:center;padding:48px 24px;color:var(--text-muted)}
+.empty-state h3{font-size:16px;margin-bottom:8px;color:var(--text-secondary)}
+.empty-state p{font-size:13px}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.detail-row{display:flex;padding:10px 0;border-bottom:1px solid var(--border-light)}
+.detail-row:last-child{border-bottom:none}
+.detail-label{width:160px;font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px;flex-shrink:0}
+.detail-val{font-size:13px;color:var(--text-primary)}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════ LOGIN SCREEN ══════════════════════ -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-logo-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      </div>
+      <div>
+        <h1>E-Disiplin ASN</h1>
+        <span>Platform Pengawasan Disiplin Pegawai</span>
+      </div>
+    </div>
+
+    <div class="demo-tag">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+      Pilih role demo — Password: <strong style="color:var(--primary-light);font-family:var(--mono)">abcd</strong>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Login Sebagai</label>
+      <select class="form-select" id="login-role" onchange="onRoleChange()">
+        <option value="admin"       data-nip="198503152008011001">Admin — Dr. Ahmad Suryadi</option>
+        <option value="atasan"      data-nip="197812222005022003">Atasan — Ir. Siti Rahmawati</option>
+        <option value="pemeriksa"   data-nip="198807152015011002">Pemeriksa — Bambang Prakoso</option>
+        <option value="bkpsdm"      data-nip="199102102019032001">BKPSDM — Dewi Anggraeni</option>
+        <option value="pegawai"     data-nip="199506082020121003">Pegawai — Rudi Hartono</option>
+        <option value="inspektorat" data-nip="197611102002121004">Inspektorat — Prof. Hasan Basri</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">NIP</label>
+      <input class="form-input" id="login-nip" type="text" value="198503152008011001" placeholder="Masukkan NIP"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <input class="form-input" id="login-pass" type="password" value="abcd" placeholder="Password"/>
+    </div>
+    <div class="alert-err" id="login-err">NIP atau password salah. Coba lagi.</div>
+    <button class="login-btn" onclick="doLogin()">Masuk ke Sistem</button>
+  </div>
+</div>
+
+<!-- ══════════════════════ MAIN APP ══════════════════════ -->
+<div id="app" class="hidden">
+
+  <!-- SIDEBAR -->
+  <nav id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      </div>
+      <div>
+        <div class="sidebar-brand">E-Disiplin ASN</div>
+        <div class="sidebar-sub">Sistem Pengawasan Disiplin</div>
+      </div>
+    </div>
+
+    <div id="sidebar-menu"></div>
+
+    <div class="sidebar-footer">
+      <div class="user-pill">
+        <div class="user-avatar" id="user-avatar"></div>
+        <div>
+          <div class="user-name" id="user-name-disp"></div>
+          <div class="user-role-label" id="user-role-disp"></div>
+        </div>
+      </div>
+      <button class="logout-btn" onclick="doLogout()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Keluar dari Sistem
+      </button>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <div id="main">
+    <div id="topbar">
+      <div class="topbar-title" id="topbar-title">Dashboard</div>
+      <div class="topbar-badge" id="topbar-date"></div>
+      <div class="topbar-badge">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span>Notifikasi</span>
+      </div>
+    </div>
+    <div id="content">
+
+      <!-- ── DASHBOARD ── -->
+      <div id="page-dashboard" class="page hidden">
+        <div id="dashboard-content"></div>
+      </div>
+
+      <!-- ── KEHADIRAN ── -->
+      <div id="page-attendance" class="page hidden">
+        <div class="page-header">
+          <div><h1 class="page-title">Monitoring Kehadiran</h1><p class="page-sub">Rekap kehadiran pegawai dari sistem presensi</p></div>
+          <button class="btn btn-outline btn-sm" onclick="refreshPage('attendance')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            Refresh
+          </button>
+        </div>
+        <div class="grid-stats" id="att-stats"></div>
+        <div class="card">
+          <div class="card-body">
+            <div class="filter-bar">
+              <div class="search-box"><svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" placeholder="Cari nama atau NIP..." oninput="filterTable('att',this.value)"/></div>
+              <select class="filter-sel" onchange="filterAttStatus(this.value)">
+                <option value="">Semua Status</option>
+                <option value="hadir">Hadir</option>
+                <option value="terlambat">Terlambat</option>
+                <option value="alpa">Alpa</option>
+                <option value="ijin">Izin</option>
+                <option value="sakit">Sakit</option>
+              </select>
+              <input type="date" class="filter-sel" id="att-date"/>
+            </div>
+            <div class="table-wrap"><table><thead><tr><th>Pegawai</th><th>NIP</th><th>Tanggal</th><th>Jam Masuk</th><th>Jam Pulang</th><th>Status</th><th>Keterangan</th></tr></thead><tbody id="att-tbody"></tbody></table></div>
+            <div class="pagination"><div class="page-info" id="att-info"></div><div class="page-btns" id="att-pages"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── ANOMALI ── -->
+      <div id="page-anomaly" class="page hidden">
+        <div class="page-header"><div><h1 class="page-title">Indikator Anomali</h1><p class="page-sub">Deteksi otomatis pola kehadiran tidak wajar</p></div></div>
+        <div class="grid-stats" id="anomaly-stats"></div>
+        <div class="card"><div class="card-body"><div class="table-wrap"><table><thead><tr><th>Pegawai</th><th>Unit</th><th>Indikator</th><th>Tingkat Risiko</th><th>Total Absen</th><th>Terlambat</th><th>Aksi</th></tr></thead><tbody id="anomaly-tbody"></tbody></table></div></div></div>
+      </div>
+
+      <!-- ── LAPORAN ── -->
+      <div id="page-reports" class="page hidden">
+        <div class="page-header">
+          <div><h1 class="page-title">Laporan Dugaan Pelanggaran</h1><p class="page-sub">Kelola seluruh laporan pelanggaran disiplin ASN</p></div>
+          <button class="btn btn-primary btn-sm" onclick="showModal('modal-report')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Buat Laporan
+          </button>
+        </div>
+        <div class="grid-stats" id="rep-stats"></div>
+        <div class="card"><div class="card-body">
+          <div class="filter-bar">
+            <div class="search-box"><svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" placeholder="Cari laporan..." oninput="filterTable('rep',this.value)"/></div>
+            <select class="filter-sel"><option value="">Semua Kategori</option><option>Kehadiran</option><option>Kode Etik</option><option>Kinerja</option><option>Penyalahgunaan Wewenang</option></select>
+            <select class="filter-sel"><option value="">Semua Status</option><option>Diajukan</option><option>Diverifikasi</option><option>Ditolak</option><option>Jadi Kasus</option></select>
+          </div>
+          <div class="table-wrap"><table><thead><tr><th>No. Laporan</th><th>Tanggal</th><th>Terlapor</th><th>Kategori</th><th>Perihal</th><th>Prioritas</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="rep-tbody"></tbody></table></div>
+          <div class="pagination"><div class="page-info" id="rep-info"></div><div class="page-btns" id="rep-pages"></div></div>
+        </div></div>
+      </div>
+
+      <!-- ── KASUS ── -->
+      <div id="page-cases" class="page hidden">
+        <div class="page-header"><div><h1 class="page-title">Manajemen Kasus</h1><p class="page-sub">Kelola seluruh kasus pelanggaran disiplin ASN</p></div></div>
+        <div class="grid-stats" id="case-stats"></div>
+        <div class="card"><div class="card-body">
+          <div class="filter-bar">
+            <div class="search-box"><svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" placeholder="Cari kasus..." oninput="filterTable('case',this.value)"/></div>
+            <select class="filter-sel"><option value="">Semua Status</option><option>Baru</option><option>Penyelidikan</option><option>Pemeriksaan</option><option>Putusan</option><option>Selesai</option></select>
+            <select class="filter-sel"><option value="">Semua Tingkat</option><option>Ringan</option><option>Sedang</option><option>Berat</option></select>
+          </div>
+          <div class="table-wrap"><table><thead><tr><th>No. Kasus</th><th>Terlapor</th><th>Kategori</th><th>Perihal</th><th>Tingkat</th><th>Prioritas</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="case-tbody"></tbody></table></div>
+          <div class="pagination"><div class="page-info" id="case-info"></div><div class="page-btns" id="case-pages"></div></div>
+        </div></div>
+      </div>
+
+      <!-- ── PEMERIKSAAN ── -->
+      <div id="page-examination" class="page hidden">
+        <div class="page-header"><div><h1 class="page-title">Pemeriksaan</h1><p class="page-sub">Kelola jadwal dan hasil pemeriksaan kasus</p></div></div>
+        <div class="grid-stats" id="exam-stats"></div>
+        <div class="card"><div class="card-body">
+          <div class="filter-bar">
+            <div class="search-box"><svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" placeholder="Cari pemeriksaan..." oninput="filterTable('exam',this.value)"/></div>
+            <select class="filter-sel"><option value="">Semua Status</option><option>Terjadwal</option><option>Berlangsung</option><option>Selesai</option><option>Ditunda</option></select>
+          </div>
+          <div class="table-wrap"><table><thead><tr><th>No. BAP</th><th>Kasus</th><th>Subjek</th><th>Pemeriksa</th><th>Jadwal</th><th>Lokasi</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="exam-tbody"></tbody></table></div>
+          <div class="pagination"><div class="page-info" id="exam-info"></div></div>
+        </div></div>
+      </div>
+
+      <!-- ── KEPUTUSAN ── -->
+      <div id="page-decisions" class="page hidden">
+        <div class="page-header"><div><h1 class="page-title">Keputusan / Surat Keputusan</h1><p class="page-sub">Kelola SK hukuman disiplin ASN</p></div></div>
+        <div class="grid-stats" id="dec-stats"></div>
+        <div class="card"><div class="card-body">
+          <div class="filter-bar">
+            <div class="search-box"><svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" placeholder="Cari no. SK atau pegawai..." oninput="filterTable('dec',this.value)"/></div>
+            <select class="filter-sel"><option value="">Semua Tingkat</option><option>Ringan</option><option>Sedang</option><option>Berat</option></select>
+            <select class="filter-sel"><option value="">Semua Status</option><option>Berlaku</option><option>Menunggu</option><option>Dicabut</option></select>
+          </div>
+          <div class="table-wrap"><table><thead><tr><th>No. SK</th><th>Tanggal</th><th>Pegawai</th><th>Jenis Hukuman</th><th>Tingkat</th><th>Berlaku Mulai</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="dec-tbody"></tbody></table></div>
+          <div class="pagination"><div class="page-info" id="dec-info"></div></div>
+        </div></div>
+      </div>
+
+      <!-- ── PEGAWAI ── -->
+      <div id="page-employees" class="page hidden">
+        <div class="page-header">
+          <div><h1 class="page-title">Data Pegawai</h1><p class="page-sub">Kelola data seluruh Aparatur Sipil Negara</p></div>
+          <button class="btn btn-primary btn-sm" onclick="showModal('modal-emp')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Tambah Pegawai
+          </button>
+        </div>
+        <div class="grid-stats" id="emp-stats"></div>
+        <div class="card"><div class="card-body">
+          <div class="filter-bar">
+            <div class="search-box"><svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" placeholder="Cari nama atau NIP..." oninput="filterTable('emp',this.value)"/></div>
+            <select class="filter-sel"><option value="">Semua Unit</option><option>Dinas Kepegawaian</option><option>Bidang Pembinaan</option><option>Inspektorat</option><option>BKPSDM</option><option>Sekretariat</option></select>
+            <select class="filter-sel"><option value="">Semua Jenis</option><option>PNS</option><option>PPPK</option></select>
+            <select class="filter-sel"><option value="">Semua Status</option><option>Aktif</option><option>Tidak Aktif</option></select>
+          </div>
+          <div class="table-wrap"><table><thead><tr><th>NIP</th><th>Nama</th><th>Jabatan</th><th>Unit Kerja</th><th>Jenis</th><th>Gol.</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="emp-tbody"></tbody></table></div>
+          <div class="pagination"><div class="page-info" id="emp-info"></div><div class="page-btns" id="emp-pages"></div></div>
+        </div></div>
+      </div>
+
+      <!-- ── ANALITIK ── -->
+      <div id="page-analytics" class="page hidden">
+        <div class="page-header"><div><h1 class="page-title">Analitik & Statistik</h1><p class="page-sub">Tren pelanggaran dan analisis disiplin ASN</p></div></div>
+        <div class="grid-stats" id="ana-stats"></div>
+        <div class="charts-grid">
+          <div class="card"><div class="card-header"><div class="card-title">Tren Kasus per Bulan</div></div><div class="card-body"><div class="chart-container"><canvas id="chart-monthly"></canvas></div></div></div>
+          <div class="card"><div class="card-header"><div class="card-title">Distribusi Jenis Pelanggaran</div></div><div class="card-body"><div class="chart-container"><canvas id="chart-dist"></canvas></div></div></div>
+        </div>
+        <div class="two-col">
+          <div class="card"><div class="card-header"><div class="card-title">Tingkat Hukuman</div></div><div class="card-body"><div class="chart-container"><canvas id="chart-level"></canvas></div></div></div>
+          <div class="card"><div class="card-header"><div class="card-title">Kehadiran Bulanan (%)</div></div><div class="card-body"><div class="chart-container"><canvas id="chart-attend"></canvas></div></div></div>
+        </div>
+      </div>
+
+      <!-- ── AUDIT LOG ── -->
+      <div id="page-auditlog" class="page hidden">
+        <div class="page-header"><div><h1 class="page-title">Audit Log</h1><p class="page-sub">Jejak audit aktivitas pengguna sistem</p></div><button class="btn btn-outline btn-sm">Ekspor Log</button></div>
+        <div class="grid-stats" id="audit-stats"></div>
+        <div class="card"><div class="card-body">
+          <div class="filter-bar">
+            <div class="search-box"><svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" placeholder="Cari pengguna, aksi, atau detail..." oninput="filterTable('audit',this.value)"/></div>
+            <select class="filter-sel"><option value="">Semua Aksi</option><option>LOGIN</option><option>CREATE</option><option>UPDATE</option><option>DELETE</option><option>VIEW</option><option>EXPORT</option></select>
+            <select class="filter-sel"><option value="">Semua Modul</option><option>auth</option><option>reports</option><option>cases</option><option>employees</option></select>
+            <input type="date" class="filter-sel"/>
+          </div>
+          <div class="table-wrap"><table><thead><tr><th>Waktu</th><th>Pengguna</th><th>Aksi</th><th>Detail</th><th>Modul</th><th>IP Address</th></tr></thead><tbody id="audit-tbody"></tbody></table></div>
+          <div class="pagination"><div class="page-info" id="audit-info"></div><div class="page-btns" id="audit-pages"></div></div>
+        </div></div>
+      </div>
+
+      <!-- ── PENGATURAN ── -->
+      <div id="page-settings" class="page hidden">
+        <div class="page-header"><div><h1 class="page-title">Pengaturan</h1><p class="page-sub">Konfigurasi sistem dan manajemen pengguna</p></div></div>
+        <div class="two-col mb16">
+          <div class="card"><div class="card-header"><div class="card-title">Profil Sistem</div></div><div class="card-body">
+            <div class="form-group"><label class="fl">Nama Instansi</label><input class="fi" value="Pemerintah Kabupaten — BKPSDM"/></div>
+            <div class="form-group"><label class="fl">Tahun Anggaran</label><input class="fi" value="2026"/></div>
+            <div class="form-group"><label class="fl">Email Admin</label><input class="fi" value="admin@bkpsdm.go.id"/></div>
+            <button class="btn btn-primary btn-sm">Simpan Perubahan</button>
+          </div></div>
+          <div class="card"><div class="card-header"><div class="card-title">Keamanan Sistem</div></div><div class="card-body">
+            <div class="form-group"><label class="fl">Sesi Login (menit)</label><input class="fi" type="number" value="480"/></div>
+            <div class="form-group"><label class="fl">Minimal Panjang Password</label><input class="fi" type="number" value="4"/></div>
+            <div class="form-group"><label class="fl">Maks. Percobaan Login</label><input class="fi" type="number" value="5"/></div>
+            <button class="btn btn-primary btn-sm">Simpan</button>
+          </div></div>
+        </div>
+        <div class="card"><div class="card-header"><div class="card-title">Manajemen Pengguna Sistem</div></div><div class="card-body">
+          <div class="table-wrap"><table><thead><tr><th>Nama</th><th>NIP</th><th>Role</th><th>Unit</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="settings-users-tbody"></tbody></table></div>
+        </div></div>
+      </div>
+
+    </div><!-- #content -->
+  </div><!-- #main -->
+</div><!-- #app -->
+
+<!-- ── MODAL BUAT LAPORAN ── -->
+<div class="modal-bg hidden" id="modal-report" onclick="closeModalBg(event,'modal-report')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title">Buat Laporan Dugaan Pelanggaran</div>
+      <button class="modal-close" onclick="closeModal('modal-report')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="alert alert-success hidden" id="rep-success">✓ Laporan berhasil diajukan!</div>
+      <div style="background:var(--warning-bg);border:1px solid #d9770633;border-radius:var(--radius);padding:10px 14px;font-size:12px;color:#fbbf24;display:flex;gap:8px;margin-bottom:16px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <span>Laporan ini merupakan informasi awal. <strong>Bukan merupakan keputusan</strong> bahwa pelanggaran telah terjadi.</span>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="fl">Kategori <span class="req">*</span></label><select class="fi"><option value="">-- Pilih --</option><option>Kehadiran</option><option>Kode Etik</option><option>Kinerja</option><option>Penyalahgunaan Wewenang</option><option>Pidana</option><option>Lainnya</option></select></div>
+        <div class="form-group"><label class="fl">Prioritas</label><select class="fi"><option value="sedang">Sedang</option><option value="rendah">Rendah</option><option value="tinggi">Tinggi</option><option value="kritis">Kritis</option></select></div>
+      </div>
+      <div class="form-group"><label class="fl">Pegawai Terlapor <span class="req">*</span></label><select class="fi" id="rep-employee"><option value="">-- Pilih Pegawai --</option></select></div>
+      <div class="form-group"><label class="fl">Perihal Laporan <span class="req">*</span></label><input class="fi" type="text" placeholder="Judul singkat laporan..." id="rep-title"/></div>
+      <div class="form-row">
+        <div class="form-group"><label class="fl">Tanggal Kejadian</label><input class="fi" type="date"/></div>
+        <div class="form-group"><label class="fl">Lokasi Kejadian</label><input class="fi" type="text" placeholder="Opsional"/></div>
+      </div>
+      <div class="form-group"><label class="fl">Kronologi <span class="req">*</span></label><textarea class="fta" placeholder="Uraikan kronologi kejadian secara singkat dan jelas..." id="rep-desc"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline btn-sm" onclick="closeModal('modal-report')">Batal</button>
+      <button class="btn btn-primary btn-sm" onclick="submitReport()">Ajukan Laporan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL TAMBAH PEGAWAI ── -->
+<div class="modal-bg hidden" id="modal-emp" onclick="closeModalBg(event,'modal-emp')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title">Tambah Data Pegawai</div>
+      <button class="modal-close" onclick="closeModal('modal-emp')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group"><label class="fl">NIP <span class="req">*</span></label><input class="fi" type="text" placeholder="18 digit NIP"/></div>
+        <div class="form-group"><label class="fl">Jenis ASN</label><select class="fi"><option>PNS</option><option>PPPK</option></select></div>
+      </div>
+      <div class="form-group"><label class="fl">Nama Lengkap <span class="req">*</span></label><input class="fi" type="text" placeholder="Nama lengkap dengan gelar"/></div>
+      <div class="form-row">
+        <div class="form-group"><label class="fl">Jabatan</label><input class="fi" type="text" placeholder="Jabatan/Posisi"/></div>
+        <div class="form-group"><label class="fl">Unit Kerja</label><select class="fi"><option>Dinas Kepegawaian</option><option>Bidang Pembinaan</option><option>Inspektorat</option><option>BKPSDM</option><option>Sekretariat</option></select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="fl">Golongan/Pangkat</label><input class="fi" type="text" placeholder="Misal: III/b"/></div>
+        <div class="form-group"><label class="fl">Tanggal Bergabung</label><input class="fi" type="date"/></div>
+      </div>
+      <div class="form-group"><label class="fl">Email</label><input class="fi" type="email" placeholder="email@instansi.go.id"/></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline btn-sm" onclick="closeModal('modal-emp')">Batal</button>
+      <button class="btn btn-primary btn-sm" onclick="submitEmployee()">Simpan Data</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// DATA DEMO
+// ══════════════════════════════════════════════════════════════
+const DEMO_USERS = {
+  admin:       { nip:'198503152008011001', name:'Dr. Ahmad Suryadi',      role:'admin',       jabatan:'Kepala Dinas',         unit:'Dinas Kepegawaian', color:'#2563eb' },
+  atasan:      { nip:'197812222005022003', name:'Ir. Siti Rahmawati',     role:'atasan',      jabatan:'Kepala Bidang',         unit:'Bidang Pembinaan',  color:'#16a34a' },
+  pemeriksa:   { nip:'198807152015011002', name:'Bambang Prakoso, SH',    role:'pemeriksa',   jabatan:'Analis Kepegawaian',    unit:'Inspektorat',       color:'#7c3aed' },
+  bkpsdm:      { nip:'199102102019032001', name:'Dewi Anggraeni, S.IP',   role:'bkpsdm',      jabatan:'Staff BKPSDM',          unit:'BKPSDM',            color:'#ea580c' },
+  pegawai:     { nip:'199506082020121003', name:'Rudi Hartono, S.Kom',    role:'pegawai',     jabatan:'Staff Administrasi',    unit:'Sekretariat',       color:'#0ea5e9' },
+  inspektorat: { nip:'197611102002121004', name:'Prof. Hasan Basri',      role:'inspektorat', jabatan:'Inspektur',             unit:'Inspektorat',       color:'#db2777' },
+};
+const ROLE_LABELS = { admin:'Administrator', atasan:'Atasan', pemeriksa:'Pemeriksa', bkpsdm:'BKPSDM', pegawai:'Pegawai ASN', inspektorat:'Inspektorat' };
+const ROLE_COLORS = { admin:'#2563eb', atasan:'#16a34a', pemeriksa:'#7c3aed', bkpsdm:'#ea580c', pegawai:'#0ea5e9', inspektorat:'#db2777' };
+
+const EMPLOYEES = [
+  { id:1,  nip:'198503152008011001', name:'Dr. Ahmad Suryadi',       jabatan:'Kepala Dinas',           unit:'Dinas Kepegawaian', type:'PNS',  rank:'IV/b', status:'active', join:'2008-01-15' },
+  { id:2,  nip:'197812222005022003', name:'Ir. Siti Rahmawati',      jabatan:'Kepala Bidang',          unit:'Bidang Pembinaan',  type:'PNS',  rank:'IV/a', status:'active', join:'2005-02-22' },
+  { id:3,  nip:'198807152015011002', name:'Bambang Prakoso, SH',     jabatan:'Analis Kepegawaian',     unit:'Inspektorat',       type:'PNS',  rank:'III/c',status:'active', join:'2015-01-15' },
+  { id:4,  nip:'199102102019032001', name:'Dewi Anggraeni, S.IP',    jabatan:'Pengelola Kepegawaian',  unit:'BKPSDM',            type:'PPPK', rank:'-',    status:'active', join:'2019-03-10' },
+  { id:5,  nip:'199506082020121003', name:'Rudi Hartono, S.Kom',     jabatan:'Staff Administrasi',     unit:'Sekretariat',       type:'PPPK', rank:'-',    status:'active', join:'2020-12-08' },
+  { id:6,  nip:'197611102002121004', name:'Prof. Hasan Basri',       jabatan:'Inspektur',              unit:'Inspektorat',       type:'PNS',  rank:'IV/c', status:'active', join:'2002-12-10' },
+  { id:7,  nip:'198201012006041005', name:'Dra. Novi Lestari',       jabatan:'Kasubag Umum',           unit:'Dinas Kepegawaian', type:'PNS',  rank:'III/d',status:'active', join:'2006-04-01' },
+  { id:8,  nip:'199009172022211006', name:'Fajar Nugroho',           jabatan:'Pranata Komputer',       unit:'Sekretariat',       type:'PPPK', rank:'-',    status:'active', join:'2022-11-01' },
+  { id:9,  nip:'198605212010012007', name:'Yusuf Maulana, S.IP',     jabatan:'Analis Kebijakan',       unit:'Bidang Pembinaan',  type:'PNS',  rank:'III/b',status:'active', join:'2010-01-01' },
+  { id:10, nip:'199302112018011008', name:'Anisa Rahayu, S.E',       jabatan:'Pengelola Kepegawaian',  unit:'BKPSDM',            type:'PPPK', rank:'-',    status:'active', join:'2018-01-01' },
+  { id:11, nip:'197811052002121009', name:'Drs. Hendra Gunawan',     jabatan:'Kepala Seksi',           unit:'Bidang Pembinaan',  type:'PNS',  rank:'IV/a', status:'active', join:'2002-12-01' },
+  { id:12, nip:'199107232020121010', name:'Rizky Firmansyah, S.H',  jabatan:'Auditor',                unit:'Inspektorat',       type:'PNS',  rank:'III/a',status:'active', join:'2020-12-01' },
+  { id:13, nip:'199511202019012011', name:'Dian Purnama, A.Md',     jabatan:'Pengadministrasi',       unit:'Sekretariat',       type:'PPPK', rank:'-',    status:'active', join:'2019-01-01' },
+  { id:14, nip:'199003152014032012', name:'Yuni Astuti, S.E',        jabatan:'Analis Keuangan',        unit:'Dinas Kepegawaian', type:'PNS',  rank:'III/c',status:'active', join:'2014-03-01' },
+  { id:15, nip:'198705112009011013', name:'Sri Wahyuni, S.Pd',       jabatan:'Guru Pembina',           unit:'Bidang Pembinaan',  type:'PNS',  rank:'III/d',status:'active', join:'2009-01-01' },
+  { id:16, nip:'199406082021111014', name:'Budi Santoso, S.T',       jabatan:'Teknisi',                unit:'Sekretariat',       type:'PPPK', rank:'-',    status:'active', join:'2021-11-01' },
+];
+
+const REPORTS = [
+  { id:1, no:'LAP-2026-0001', date:'2026-10-01', employee:'Drs. Hendra Gunawan',  cat:'Kehadiran',               title:'Ketidakhadiran tanpa keterangan 5 hari', priority:'tinggi', status:'diajukan' },
+  { id:2, no:'LAP-2026-0002', date:'2026-10-05', employee:'Sri Wahyuni, S.Pd',    cat:'Kode Etik',               title:'Dugaan pelecehan terhadap rekan kerja',  priority:'sedang', status:'diverifikasi' },
+  { id:3, no:'LAP-2026-0003', date:'2026-10-08', employee:'Budi Santoso, S.T',    cat:'Kinerja',                 title:'Tidak memenuhi target kinerja triwulan', priority:'rendah', status:'diajukan' },
+  { id:4, no:'LAP-2026-0004', date:'2026-10-12', employee:'Rizky Firmansyah',     cat:'Penyalahgunaan Wewenang', title:'Penggunaan aset negara untuk pribadi',   priority:'kritis', status:'jadi_kasus' },
+  { id:5, no:'LAP-2026-0005', date:'2026-10-15', employee:'Yuni Astuti, S.E',     cat:'Kehadiran',               title:'Terlambat berulang kali (>30 menit)',     priority:'sedang', status:'diajukan' },
+  { id:6, no:'LAP-2026-0006', date:'2026-10-18', employee:'Dian Purnama, A.Md',  cat:'Kode Etik',               title:'Tidak mematuhi pakaian dinas',           priority:'rendah', status:'ditolak' },
+  { id:7, no:'LAP-2026-0007', date:'2026-10-20', employee:'Fajar Nugroho',        cat:'Kehadiran',               title:'Alpa tanpa keterangan 3 hari berturut',  priority:'tinggi', status:'diajukan' },
+];
+
+const CASES = [
+  { id:1, no:'KASUS-2026-0001', employee:'Drs. Hendra Gunawan',  cat:'Kehadiran',               title:'Ketidakhadiran berulang tanpa keterangan', level:'ringan', priority:'rendah', status:'penyelidikan', pic:'Bambang Prakoso' },
+  { id:2, no:'KASUS-2026-0002', employee:'Sri Wahyuni, S.Pd',    cat:'Kode Etik',               title:'Dugaan pelecehan terhadap rekan kerja',    level:'sedang', priority:'sedang', status:'pemeriksaan',  pic:'Bambang Prakoso' },
+  { id:3, no:'KASUS-2026-0003', employee:'Budi Santoso, S.T',    cat:'Kinerja',                 title:'Tidak memenuhi target kinerja triwulan',   level:'ringan', priority:'rendah', status:'baru',         pic:'Bambang Prakoso' },
+  { id:4, no:'KASUS-2026-0004', employee:'Rizky Firmansyah',     cat:'Penyalahgunaan Wewenang', title:'Penyalahgunaan aset negara',               level:'berat',  priority:'kritis', status:'putusan',      pic:'Prof. Hasan Basri' },
+  { id:5, no:'KASUS-2026-0005', employee:'Yuni Astuti, S.E',     cat:'Kehadiran',               title:'Terlambat masuk berulang kali',            level:'ringan', priority:'sedang', status:'selesai',      pic:'Bambang Prakoso' },
+  { id:6, no:'KASUS-2026-0006', employee:'Fajar Nugroho',        cat:'Kehadiran',               title:'Alpa tanpa keterangan berulang',           level:'sedang', priority:'tinggi', status:'penyelidikan', pic:'Bambang Prakoso' },
+];
+
+const EXAMINATIONS = [
+  { id:1, no:'BAP-2026-0001', case_no:'KASUS-2026-0002', subject:'Sri Wahyuni, S.Pd',   examiner:'Bambang Prakoso', schedule:'2026-10-20 09:00', venue:'Ruang Sidang Lt.2', status:'selesai' },
+  { id:2, no:'BAP-2026-0002', case_no:'KASUS-2026-0004', subject:'Rizky Firmansyah',    examiner:'Prof. Hasan Basri', schedule:'2026-10-25 10:00', venue:'Ruang Inspektorat', status:'berlangsung' },
+  { id:3, no:'BAP-2026-0003', case_no:'KASUS-2026-0001', subject:'Drs. Hendra Gunawan', examiner:'Bambang Prakoso', schedule:'2026-10-28 08:30', venue:'Ruang Sidang Lt.2', status:'terjadwal' },
+  { id:4, no:'BAP-2026-0004', case_no:'KASUS-2026-0006', subject:'Fajar Nugroho',       examiner:'Bambang Prakoso', schedule:'2026-11-02 09:00', venue:'Ruang Sidang Lt.1', status:'terjadwal' },
+];
+
+const DECISIONS = [
+  { id:1, no:'SK-2026-0001', date:'2026-09-28', employee:'Drs. Hendra Gunawan',  nip:'197811052002121009', type:'Teguran Tertulis',        level:'ringan', effective:'2026-10-01', status:'berlaku' },
+  { id:2, no:'SK-2026-0002', date:'2026-09-15', employee:'Yuni Astuti, S.E',     nip:'199003152014032012', type:'Penundaan Kenaikan Gaji',  level:'sedang', effective:'2026-10-01', status:'berlaku' },
+  { id:3, no:'SK-2026-0003', date:'2026-08-20', employee:'Sri Wahyuni, S.Pd',    nip:'198705112009011013', type:'Penurunan Pangkat',        level:'berat',  effective:'2026-09-01', status:'berlaku' },
+  { id:4, no:'SK-2026-0004', date:'2026-10-05', employee:'Dian Purnama, A.Md',  nip:'199511202019012011', type:'Pernyataan Tidak Puas',    level:'ringan', effective:'2026-10-10', status:'menunggu' },
+];
+
+const ATTENDANCE = [
+  { id:1, name:'Dr. Ahmad Suryadi',      nip:'198503152008011001', date:'2026-10-29', in:'07:45', out:'16:30', status:'hadir',     note:'' },
+  { id:2, name:'Ir. Siti Rahmawati',     nip:'197812222005022003', date:'2026-10-29', in:'07:55', out:'16:30', status:'hadir',     note:'' },
+  { id:3, name:'Bambang Prakoso',        nip:'198807152015011002', date:'2026-10-29', in:'08:35', out:'16:30', status:'terlambat', note:'Terlambat 35 menit' },
+  { id:4, name:'Dewi Anggraeni',         nip:'199102102019032001', date:'2026-10-29', in:'07:50', out:'16:30', status:'hadir',     note:'' },
+  { id:5, name:'Rudi Hartono',           nip:'199506082020121003', date:'2026-10-29', in:null,    out:null,    status:'alpa',      note:'Tidak hadir' },
+  { id:6, name:'Prof. Hasan Basri',      nip:'197611102002121004', date:'2026-10-29', in:'07:40', out:'16:30', status:'hadir',     note:'' },
+  { id:7, name:'Dra. Novi Lestari',      nip:'198201012006041005', date:'2026-10-29', in:'07:58', out:'16:30', status:'hadir',     note:'' },
+  { id:8, name:'Fajar Nugroho',          nip:'199009172022211006', date:'2026-10-29', in:null,    out:null,    status:'ijin',      note:'Izin keperluan keluarga' },
+  { id:9, name:'Yusuf Maulana',          nip:'198605212010012007', date:'2026-10-29', in:'08:02', out:'16:30', status:'hadir',     note:'' },
+  { id:10,name:'Anisa Rahayu',           nip:'199302112018011008', date:'2026-10-29', in:null,    out:null,    status:'sakit',     note:'Surat dokter' },
+  { id:11,name:'Drs. Hendra Gunawan',    nip:'197811052002121009', date:'2026-10-29', in:'09:10', out:'16:30', status:'terlambat', note:'Terlambat 70 menit' },
+  { id:12,name:'Rizky Firmansyah',       nip:'199107232020121010', date:'2026-10-29', in:'07:55', out:'16:30', status:'hadir',     note:'' },
+  { id:13,name:'Dian Purnama',           nip:'199511202019012011', date:'2026-10-29', in:'07:50', out:'16:30', status:'hadir',     note:'' },
+  { id:14,name:'Yuni Astuti',            nip:'199003152014032012', date:'2026-10-29', in:'07:48', out:'16:30', status:'hadir',     note:'' },
+  { id:15,name:'Sri Wahyuni',            nip:'198705112009011013', date:'2026-10-29', in:'08:20', out:'16:30', status:'terlambat', note:'Terlambat 20 menit' },
+];
+
+const ANOMALIES = [
+  { name:'Drs. Hendra Gunawan', unit:'Bidang Pembinaan', risk:'tinggi', absen:8, terlambat:12, indicator:'Ketidakhadiran berulang kali tanpa keterangan sah' },
+  { name:'Fajar Nugroho',       unit:'Sekretariat',      risk:'sedang', absen:5, terlambat:7,  indicator:'Pola terlambat konsisten setiap Senin dan Jumat' },
+  { name:'Sri Wahyuni, S.Pd',   unit:'Bidang Pembinaan', risk:'sedang', absen:4, terlambat:10, indicator:'Jam masuk tidak konsisten, sering terlambat >30 menit' },
+  { name:'Rizky Firmansyah',    unit:'Inspektorat',      risk:'rendah', absen:2, terlambat:5,  indicator:'Beberapa hari terlambat dalam bulan ini' },
+];
+
+const AUDIT_LOGS = [
+  { time:'2026-10-29 17:00:01', user:'Dr. Ahmad Suryadi',    action:'LOGIN',  detail:'Login ke sistem berhasil dari browser Chrome',       module:'auth',      ip:'192.168.1.10' },
+  { time:'2026-10-29 17:05:22', user:'Dr. Ahmad Suryadi',    action:'CREATE', detail:'Membuat laporan LAP-2026-0007',                       module:'reports',   ip:'192.168.1.10' },
+  { time:'2026-10-29 16:45:11', user:'Bambang Prakoso',      action:'UPDATE', detail:'Memperbarui status kasus KASUS-2026-0002 → selesai',  module:'cases',     ip:'192.168.1.12' },
+  { time:'2026-10-29 16:30:55', user:'Dewi Anggraeni',       action:'VIEW',   detail:'Melihat daftar pegawai (16 data)',                    module:'employees', ip:'192.168.1.13' },
+  { time:'2026-10-29 16:15:40', user:'Ir. Siti Rahmawati',   action:'CREATE', detail:'Membuat laporan LAP-2026-0006',                       module:'reports',   ip:'192.168.1.11' },
+  { time:'2026-10-29 16:00:33', user:'Prof. Hasan Basri',    action:'EXPORT', detail:'Mengekspor laporan audit bulan Oktober 2026',         module:'reports',   ip:'192.168.1.16' },
+  { time:'2026-10-29 15:45:22', user:'Dewi Anggraeni',       action:'UPDATE', detail:'Menetapkan SK-2026-0004 untuk Dian Purnama',          module:'decisions', ip:'192.168.1.13' },
+  { time:'2026-10-29 15:30:17', user:'Dr. Ahmad Suryadi',    action:'LOGIN',  detail:'Login ke sistem berhasil',                           module:'auth',      ip:'192.168.1.10' },
+  { time:'2026-10-29 14:55:08', user:'Bambang Prakoso',      action:'CREATE', detail:'Menjadwalkan pemeriksaan BAP-2026-0003',              module:'examinations', ip:'192.168.1.12' },
+  { time:'2026-10-29 14:20:44', user:'Ir. Siti Rahmawati',   action:'VIEW',   detail:'Melihat laporan anomali kehadiran',                  module:'anomaly',   ip:'192.168.1.11' },
+];
+
+// ══════════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════════
+let currentUser = null;
+let currentPage = 'dashboard';
+let chartInstances = {};
+
+// ══════════════════════════════════════════════════════════════
+// AUTH
+// ══════════════════════════════════════════════════════════════
+function onRoleChange() {
+  const sel = document.getElementById('login-role');
+  const opt = sel.options[sel.selectedIndex];
+  document.getElementById('login-nip').value = opt.getAttribute('data-nip');
+}
+function doLogin() {
+  const nip  = document.getElementById('login-nip').value.trim();
+  const pass = document.getElementById('login-pass').value.trim();
+  const role = document.getElementById('login-role').value;
+  const err  = document.getElementById('login-err');
+  const user = Object.values(DEMO_USERS).find(u => u.nip === nip || u.role === role);
+  if (!user || pass !== 'abcd') { err.style.display='flex'; return; }
+  err.style.display = 'none';
+  currentUser = user;
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  initApp();
+}
+function doLogout() {
+  currentUser = null;
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('login-screen').classList.remove('hidden');
+  Object.values(chartInstances).forEach(c => c && c.destroy());
+  chartInstances = {};
+}
+
+// ══════════════════════════════════════════════════════════════
+// SIDEBAR MENU DEFINITIONS PER ROLE
+// ══════════════════════════════════════════════════════════════
+const MENUS = {
+  admin: [
+    { section:'Utama', items:[{ page:'dashboard', label:'Dashboard', icon:'layout-dashboard' }] },
+    { section:'Monitoring', items:[
+      { page:'attendance', label:'Monitoring Kehadiran', icon:'clock' },
+      { page:'anomaly',    label:'Indikator Anomali',   icon:'alert-triangle', badge:4 },
+    ]},
+    { section:'Pelaporan & Kasus', items:[
+      { page:'reports',     label:'Laporan Pelanggaran', icon:'file-text', badge:3 },
+      { page:'cases',       label:'Manajemen Kasus',     icon:'folder-open', badge:2 },
+      { page:'examination', label:'Pemeriksaan',         icon:'scale' },
+      { page:'decisions',   label:'Keputusan / SK',      icon:'book-open' },
+    ]},
+    { section:'Data & Analitik', items:[
+      { page:'employees',  label:'Data Pegawai',   icon:'users' },
+      { page:'analytics',  label:'Analitik',       icon:'bar-chart-3' },
+    ]},
+    { section:'Administrasi', items:[
+      { page:'auditlog', label:'Audit Log',    icon:'shield' },
+      { page:'settings', label:'Pengaturan',  icon:'settings' },
+    ]},
+  ],
+  atasan: [
+    { section:'Utama', items:[{ page:'dashboard', label:'Dashboard', icon:'layout-dashboard' }] },
+    { section:'Monitoring', items:[
+      { page:'attendance', label:'Monitoring Kehadiran', icon:'clock' },
+      { page:'anomaly',    label:'Indikator Anomali',   icon:'alert-triangle', badge:2 },
+    ]},
+    { section:'Pelaporan', items:[
+      { page:'reports', label:'Laporan Pelanggaran', icon:'file-text', badge:3 },
+      { page:'cases',   label:'Manajemen Kasus',     icon:'folder-open' },
+      { page:'decisions', label:'Keputusan / SK',    icon:'book-open' },
+    ]},
+    { section:'Data', items:[
+      { page:'employees', label:'Data Pegawai', icon:'users' },
+    ]},
+  ],
+  pemeriksa: [
+    { section:'Utama', items:[{ page:'dashboard', label:'Dashboard', icon:'layout-dashboard' }] },
+    { section:'Tugas', items:[
+      { page:'cases',       label:'Manajemen Kasus', icon:'folder-open', badge:2 },
+      { page:'examination', label:'Pemeriksaan',     icon:'scale' },
+    ]},
+    { section:'Profil', items:[
+      { page:'settings', label:'Profil Saya', icon:'settings' },
+    ]},
+  ],
+  bkpsdm: [
+    { section:'Utama', items:[{ page:'dashboard', label:'Dashboard', icon:'layout-dashboard' }] },
+    { section:'Monitoring', items:[
+      { page:'attendance', label:'Monitoring Kehadiran', icon:'clock' },
+    ]},
+    { section:'Pengelolaan', items:[
+      { page:'reports',   label:'Laporan Pelanggaran', icon:'file-text' },
+      { page:'cases',     label:'Manajemen Kasus',     icon:'folder-open' },
+      { page:'decisions', label:'Keputusan / SK',      icon:'book-open' },
+    ]},
+    { section:'Data & Analitik', items:[
+      { page:'employees', label:'Data Pegawai', icon:'users' },
+      { page:'analytics', label:'Analitik',     icon:'bar-chart-3' },
+    ]},
+  ],
+  pegawai: [
+    { section:'Utama', items:[{ page:'dashboard', label:'Dashboard', icon:'layout-dashboard' }] },
+    { section:'Saya', items:[
+      { page:'attendance', label:'Kehadiran Saya', icon:'clock' },
+      { page:'reports',    label:'Buat Laporan',   icon:'file-text' },
+    ]},
+    { section:'Akun', items:[
+      { page:'settings', label:'Profil Saya', icon:'settings' },
+    ]},
+  ],
+  inspektorat: [
+    { section:'Utama', items:[{ page:'dashboard', label:'Dashboard', icon:'layout-dashboard' }] },
+    { section:'Pengawasan', items:[
+      { page:'attendance',  label:'Monitoring Kehadiran', icon:'clock' },
+      { page:'anomaly',     label:'Indikator Anomali',   icon:'alert-triangle' },
+      { page:'reports',     label:'Laporan Pelanggaran', icon:'file-text' },
+      { page:'cases',       label:'Manajemen Kasus',     icon:'folder-open' },
+      { page:'examination', label:'Pemeriksaan',         icon:'scale' },
+      { page:'decisions',   label:'Keputusan / SK',      icon:'book-open' },
+    ]},
+    { section:'Data & Audit', items:[
+      { page:'employees', label:'Data Pegawai', icon:'users' },
+      { page:'analytics', label:'Analitik',     icon:'bar-chart-3' },
+      { page:'auditlog',  label:'Audit Log',    icon:'shield' },
+    ]},
+  ],
+};
+
+// ══════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════
+function initApp() {
+  renderTopbar();
+  renderUserInfo();
+  renderSidebar();
+  populateEmployeeDropdown();
+  populateSettingsUsers();
+  navigateTo('dashboard');
+}
+
+function renderTopbar() {
+  const now = new Date();
+  document.getElementById('topbar-date').textContent = now.toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+}
+
+function renderUserInfo() {
+  const u = currentUser;
+  const initials = u.name.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
+  document.getElementById('user-avatar').style.cssText = `background:${u.color}33;color:${u.color};border:1px solid ${u.color}44`;
+  document.getElementById('user-avatar').textContent = initials;
+  document.getElementById('user-name-disp').textContent = u.name.split(',')[0].replace(/^(Dr\.|Ir\.|Drs\.|Prof\.|Dra\.)\s*/,'');
+  document.getElementById('user-role-disp').textContent = ROLE_LABELS[u.role];
+}
+
+function renderSidebar() {
+  const menus = MENUS[currentUser.role] || MENUS.admin;
+  let html = '';
+  menus.forEach(sec => {
+    html += `<div class="sidebar-section">${sec.section}</div>`;
+    sec.items.forEach(item => {
+      html += `<button class="nav-item" id="nav-${item.page}" onclick="navigateTo('${item.page}')">
+        <i data-lucide="${item.icon}" style="width:16px;height:16px;flex-shrink:0"></i>
+        ${item.label}
+        ${item.badge ? `<span class="nav-badge">${item.badge}</span>` : ''}
+      </button>`;
+    });
+  });
+  document.getElementById('sidebar-menu').innerHTML = html;
+  if (window.lucide) lucide.createIcons();
+}
+
+// ══════════════════════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════════════════════
+function navigateTo(page) {
+  currentPage = page;
+  // Hide all pages
+  document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+  // Show target
+  const target = document.getElementById('page-' + page);
+  if (target) target.classList.remove('hidden');
+  // Update nav active
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const navBtn = document.getElementById('nav-' + page);
+  if (navBtn) navBtn.classList.add('active');
+  // Update topbar title
+  const pageNames = {
+    dashboard:'Dashboard', attendance:'Monitoring Kehadiran', anomaly:'Indikator Anomali',
+    reports:'Laporan Pelanggaran', cases:'Manajemen Kasus', examination:'Pemeriksaan',
+    decisions:'Keputusan / SK', employees:'Data Pegawai', analytics:'Analitik & Statistik',
+    auditlog:'Audit Log', settings:'Pengaturan'
+  };
+  document.getElementById('topbar-title').textContent = pageNames[page] || page;
+  // Render page content
+  renderPage(page);
+}
+
+function refreshPage(page) { renderPage(page); }
+
+function renderPage(page) {
+  const fns = {
+    dashboard:   renderDashboard,
+    attendance:  renderAttendance,
+    anomaly:     renderAnomaly,
+    reports:     renderReports,
+    cases:       renderCases,
+    examination: renderExaminations,
+    decisions:   renderDecisions,
+    employees:   renderEmployees,
+    analytics:   renderAnalytics,
+    auditlog:    renderAuditLog,
+    settings:    () => {},
+  };
+  if (fns[page]) fns[page]();
+  if (window.lucide) lucide.createIcons();
+}
+
+// ══════════════════════════════════════════════════════════════
+// DASHBOARD PER ROLE
+// ══════════════════════════════════════════════════════════════
+function renderDashboard() {
+  const role = currentUser.role;
+  const wbBg = {
+    admin:'linear-gradient(135deg,#1e3a5f,#2563eb)',
+    atasan:'linear-gradient(135deg,#1a4731,#16a34a)',
+    pemeriksa:'linear-gradient(135deg,#3b1d6e,#7c3aed)',
+    bkpsdm:'linear-gradient(135deg,#7c2d12,#ea580c)',
+    pegawai:'linear-gradient(135deg,#1e3a5f,#0ea5e9)',
+    inspektorat:'linear-gradient(135deg,#4a1942,#db2777)',
+  };
+  const hadir = ATTENDANCE.filter(a=>a.status==='hadir').length;
+  const alpa  = ATTENDANCE.filter(a=>a.status==='alpa').length;
+  const trlmbt= ATTENDANCE.filter(a=>a.status==='terlambat').length;
+
+  let statsHtml = '', extraHtml = '';
+
+  if (role === 'admin') {
+    statsHtml = makeStats([
+      {label:'Total Pegawai',    val:EMPLOYEES.length, icon:'users',       color:'blue'},
+      {label:'Hadir Hari Ini',   val:hadir,            icon:'check-circle',color:'green'},
+      {label:'Kasus Aktif',      val:CASES.filter(c=>c.status!=='selesai').length, icon:'folder-open',color:'yellow'},
+      {label:'Laporan Masuk',    val:REPORTS.filter(r=>r.status==='diajukan').length, icon:'file-text',color:'red'},
+    ]);
+    extraHtml = `
+      <div class="two-col">
+        <div class="card"><div class="card-header"><div class="card-title">Ringkasan Kasus per Status</div></div><div class="card-body" style="height:200px"><canvas id="db-chart1"></canvas></div></div>
+        <div class="card"><div class="card-header"><div class="card-title">Kehadiran Hari Ini</div></div><div class="card-body" style="height:200px"><canvas id="db-chart2"></canvas></div></div>
+      </div>`;
+  } else if (role === 'atasan') {
+    statsHtml = makeStats([
+      {label:'Pegawai di Unit',  val:5,     icon:'users',         color:'green'},
+      {label:'Hadir Hari Ini',   val:hadir, icon:'check-circle',  color:'blue'},
+      {label:'Anomali Terdeteksi',val:ANOMALIES.length, icon:'alert-triangle',color:'yellow'},
+      {label:'Laporan Saya',     val:REPORTS.length,  icon:'file-text',     color:'red'},
+    ]);
+  } else if (role === 'pemeriksa') {
+    statsHtml = makeStats([
+      {label:'Kasus Ditugaskan', val:CASES.filter(c=>c.pic.includes('Bambang')).length, icon:'folder-open',color:'purple'},
+      {label:'Pemeriksaan Aktif',val:EXAMINATIONS.filter(e=>e.status==='berlangsung'||e.status==='terjadwal').length, icon:'scale',color:'blue'},
+      {label:'BAP Selesai',      val:EXAMINATIONS.filter(e=>e.status==='selesai').length, icon:'check-circle',color:'green'},
+      {label:'Jadwal Minggu Ini',val:2, icon:'calendar',color:'yellow'},
+    ]);
+  } else if (role === 'bkpsdm') {
+    statsHtml = makeStats([
+      {label:'Total ASN',        val:EMPLOYEES.length, icon:'users',     color:'blue'},
+      {label:'SK Aktif',         val:DECISIONS.filter(d=>d.status==='berlaku').length, icon:'book-open',color:'yellow'},
+      {label:'Kasus Berjalan',   val:CASES.filter(c=>c.status!=='selesai').length, icon:'folder-open',color:'red'},
+      {label:'Pegawai Bermasalah',val:ANOMALIES.length, icon:'alert-triangle',color:'orange'},
+    ]);
+  } else if (role === 'pegawai') {
+    const myAtt = ATTENDANCE.filter(a=>a.nip===currentUser.nip);
+    statsHtml = makeStats([
+      {label:'Kehadiran Bulan Ini', val:'22 hari', icon:'calendar',   color:'green'},
+      {label:'Status Hari Ini',     val:'Hadir',   icon:'check-circle',color:'blue'},
+      {label:'Keterlambatan',       val:'3 kali',  icon:'clock',      color:'yellow'},
+      {label:'Alpa',                val:'0 kali',  icon:'x-circle',   color:'red'},
+    ]);
+  } else if (role === 'inspektorat') {
+    statsHtml = makeStats([
+      {label:'Total Kasus',      val:CASES.length,    icon:'folder-open',color:'blue'},
+      {label:'Dalam Pemeriksaan',val:CASES.filter(c=>c.status==='pemeriksaan').length, icon:'scale',color:'purple'},
+      {label:'SK Diterbitkan',   val:DECISIONS.length, icon:'book-open',color:'yellow'},
+      {label:'Anomali Aktif',    val:ANOMALIES.length, icon:'alert-triangle',color:'red'},
+    ]);
+  }
+
+  document.getElementById('dashboard-content').innerHTML = `
+    <div class="welcome-banner" style="background:${wbBg[role]}">
+      <div class="wb-circle1"></div><div class="wb-circle2"></div>
+      <div class="wb-content">
+        <div class="wb-title">Selamat Datang, ${currentUser.name.split(',')[0].replace(/^(Dr\.|Ir\.|Drs\.|Prof\.|Dra\.)\s*/,'')} 👋</div>
+        <div class="wb-sub">${currentUser.jabatan} · ${currentUser.unit}</div>
+        <div class="wb-badges">
+          <span class="wb-badge">${ROLE_LABELS[currentUser.role]}</span>
+          <span class="wb-badge">📅 ${new Date().toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</span>
+        </div>
+      </div>
+    </div>
+    <div class="grid-stats">${statsHtml}</div>
+    ${extraHtml}
+    ${renderRecentActivity()}
+  `;
+
+  // Charts
+  if (role === 'admin') {
+    setTimeout(() => {
+      const statuses = ['baru','penyelidikan','pemeriksaan','putusan','selesai'];
+      const counts   = statuses.map(s => CASES.filter(c=>c.status===s).length);
+      renderChart('db-chart1','doughnut',statuses,counts,['#2563eb','#7c3aed','#d97706','#dc2626','#16a34a']);
+      const attLabels = ['Hadir','Terlambat','Alpa','Izin/Sakit'];
+      const attData   = [hadir, trlmbt, alpa, ATTENDANCE.filter(a=>a.status==='ijin'||a.status==='sakit').length];
+      renderChart('db-chart2','doughnut',attLabels,attData,['#16a34a','#d97706','#dc2626','#0ea5e9']);
+    }, 100);
+  }
+  if (window.lucide) lucide.createIcons();
+}
+
+function renderRecentActivity() {
+  const recent = AUDIT_LOGS.slice(0,5);
+  const rows = recent.map(l=>`
+    <div class="tl-item">
+      <div class="tl-dot tl-${l.action==='LOGIN'?'blue':l.action==='CREATE'?'green':'yellow'}" style="position:relative">
+        <div class="tl-line"></div>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="4"/></svg>
+      </div>
+      <div class="tl-body">
+        <div class="tl-action">${l.detail}</div>
+        <div class="tl-meta">${l.user} · ${l.time}</div>
+      </div>
+    </div>
+  `).join('');
+  return `<div class="card mt4"><div class="card-header"><div class="card-title">Aktivitas Terbaru</div></div><div class="card-body"><div class="timeline">${rows}</div></div></div>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// PAGE RENDERERS
+// ══════════════════════════════════════════════════════════════
+function renderAttendance() {
+  const hadir   = ATTENDANCE.filter(a=>a.status==='hadir').length;
+  const trlmbt  = ATTENDANCE.filter(a=>a.status==='terlambat').length;
+  const alpa    = ATTENDANCE.filter(a=>a.status==='alpa').length;
+  const ijin    = ATTENDANCE.filter(a=>a.status==='ijin'||a.status==='sakit').length;
+  document.getElementById('att-stats').innerHTML = makeStats([
+    {label:'Hadir',       val:hadir,   icon:'check-circle',  color:'green'},
+    {label:'Terlambat',   val:trlmbt,  icon:'clock',         color:'yellow'},
+    {label:'Alpa',        val:alpa,    icon:'x-circle',      color:'red'},
+    {label:'Izin/Sakit',  val:ijin,    icon:'calendar',      color:'blue'},
+  ]);
+  renderTableData('att', ATTENDANCE, (r) => `
+    <td class="fw6">${r.name}</td>
+    <td><span class="mono fs11 c-muted">${r.nip}</span></td>
+    <td class="fs12">${r.date}</td>
+    <td class="fw6">${r.in || '<span class="c-muted">—</span>'}</td>
+    <td class="fw6">${r.out || '<span class="c-muted">—</span>'}</td>
+    <td>${attBadge(r.status)}</td>
+    <td class="fs12 c-muted">${r.note || '—'}</td>
+  `, 'att-info', 'att-pages');
+}
+
+function attBadge(s) {
+  const m = {hadir:'badge-success',terlambat:'badge-warning',alpa:'badge-danger',ijin:'badge-info',sakit:'badge-info'};
+  const l = {hadir:'Hadir',terlambat:'Terlambat',alpa:'Alpa',ijin:'Izin',sakit:'Sakit'};
+  return `<span class="badge ${m[s]||'badge-gray'}">${l[s]||s}</span>`;
+}
+
+function renderAnomaly() {
+  document.getElementById('anomaly-stats').innerHTML = makeStats([
+    {label:'Total Anomali',    val:ANOMALIES.length,                                  icon:'alert-triangle', color:'red'},
+    {label:'Risiko Tinggi',    val:ANOMALIES.filter(a=>a.risk==='tinggi').length,      icon:'alert-triangle', color:'red'},
+    {label:'Risiko Sedang',    val:ANOMALIES.filter(a=>a.risk==='sedang').length,      icon:'clock',          color:'yellow'},
+    {label:'Risiko Rendah',    val:ANOMALIES.filter(a=>a.risk==='rendah').length,      icon:'check-circle',   color:'green'},
+  ]);
+  const rows = ANOMALIES.map(a => `
+    <tr>
+      <td class="fw6">${a.name}</td>
+      <td class="fs12 c-muted">${a.unit}</td>
+      <td class="fs12">${a.indicator}</td>
+      <td>${riskBadge(a.risk)}</td>
+      <td><span class="fw7" style="color:var(--danger)">${a.absen}</span></td>
+      <td><span class="fw7" style="color:var(--warning)">${a.terlambat}</span></td>
+      <td><button class="btn btn-ghost btn-sm btn-icon"><i data-lucide="eye" style="width:14px;height:14px"></i></button></td>
+    </tr>
+  `).join('');
+  document.getElementById('anomaly-tbody').innerHTML = rows;
+}
+
+function riskBadge(r) {
+  const m = {tinggi:'badge-danger',sedang:'badge-warning',rendah:'badge-success'};
+  const l = {tinggi:'Tinggi',sedang:'Sedang',rendah:'Rendah'};
+  return `<span class="badge ${m[r]||'badge-gray'}">${l[r]||r}</span>`;
+}
+
+function renderReports() {
+  document.getElementById('rep-stats').innerHTML = makeStats([
+    {label:'Total Laporan',          val:REPORTS.length,                                         icon:'file-text',    color:'blue'},
+    {label:'Perlu Ditindaklanjuti',  val:REPORTS.filter(r=>r.status==='diajukan').length,        icon:'alert-triangle',color:'yellow'},
+    {label:'Diverifikasi',           val:REPORTS.filter(r=>r.status==='diverifikasi').length,    icon:'eye',          color:'purple'},
+    {label:'Jadi Kasus',             val:REPORTS.filter(r=>r.status==='jadi_kasus').length,      icon:'check-circle', color:'green'},
+  ]);
+  renderTableData('rep', REPORTS, (r) => `
+    <td><span class="fw7 c-primary fs12 mono">${r.no}</span></td>
+    <td class="fs12 c-muted">${r.date}</td>
+    <td class="fw6">${r.employee}</td>
+    <td><span class="badge badge-gray fs11">${r.cat}</span></td>
+    <td><div style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.title}</div></td>
+    <td>${priorityBadge(r.priority)}</td>
+    <td>${repStatusBadge(r.status)}</td>
+    <td><button class="btn btn-ghost btn-sm btn-icon" onclick="viewReport(${r.id})"><i data-lucide="eye" style="width:14px;height:14px"></i></button></td>
+  `, 'rep-info', 'rep-pages');
+}
+
+function priorityBadge(p) {
+  const m={rendah:'badge-success',sedang:'badge-info',tinggi:'badge-warning',kritis:'badge-danger'};
+  const l={rendah:'Rendah',sedang:'Sedang',tinggi:'Tinggi',kritis:'Kritis'};
+  return `<span class="badge ${m[p]||'badge-gray'}">${l[p]||p}</span>`;
+}
+function repStatusBadge(s) {
+  const m={diajukan:'badge-warning',diverifikasi:'badge-info',ditolak:'badge-danger',jadi_kasus:'badge-success'};
+  const l={diajukan:'Diajukan',diverifikasi:'Diverifikasi',ditolak:'Ditolak',jadi_kasus:'Jadi Kasus'};
+  return `<span class="badge ${m[s]||'badge-gray'}">${l[s]||s}</span>`;
+}
+
+function renderCases() {
+  const open = CASES.filter(c=>c.status!=='selesai').length;
+  document.getElementById('case-stats').innerHTML = makeStats([
+    {label:'Total Kasus',   val:CASES.length,                                              icon:'folder-open', color:'blue'},
+    {label:'Kasus Aktif',   val:open,                                                      icon:'clock',       color:'yellow'},
+    {label:'Pemeriksaan',   val:CASES.filter(c=>c.status==='pemeriksaan').length,          icon:'scale',       color:'purple'},
+    {label:'Selesai',       val:CASES.filter(c=>c.status==='selesai').length,              icon:'check-circle',color:'green'},
+  ]);
+  renderTableData('case', CASES, (c) => `
+    <td><span class="fw7 c-primary fs12 mono">${c.no}</span></td>
+    <td class="fw6">${c.employee}</td>
+    <td><span class="badge badge-gray fs11">${c.cat}</span></td>
+    <td><div style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.title}</div></td>
+    <td>${levelBadge(c.level)}</td>
+    <td>${priorityBadge(c.priority)}</td>
+    <td>${caseStatusBadge(c.status)}</td>
+    <td><div class="flex gap8">
+      <button class="btn btn-ghost btn-sm btn-icon" onclick="viewCase(${c.id})"><i data-lucide="eye" style="width:14px;height:14px"></i></button>
+      <button class="btn btn-ghost btn-sm btn-icon" onclick="viewCase(${c.id})"><i data-lucide="edit" style="width:14px;height:14px"></i></button>
+    </div></td>
+  `, 'case-info', 'case-pages');
+}
+
+function levelBadge(l) {
+  const m={ringan:'badge-success',sedang:'badge-warning',berat:'badge-danger'};
+  const lab={ringan:'Ringan',sedang:'Sedang',berat:'Berat'};
+  return `<span class="badge ${m[l]||'badge-gray'}">${lab[l]||l}</span>`;
+}
+function caseStatusBadge(s) {
+  const m={baru:'badge-gray',penyelidikan:'badge-info',pemeriksaan:'badge-warning',putusan:'badge-purple',selesai:'badge-success'};
+  const l={baru:'Baru',penyelidikan:'Penyelidikan',pemeriksaan:'Pemeriksaan',putusan:'Putusan',selesai:'Selesai'};
+  return `<span class="badge ${m[s]||'badge-gray'}">${l[s]||s}</span>`;
+}
+
+function renderExaminations() {
+  document.getElementById('exam-stats').innerHTML = makeStats([
+    {label:'Total Pemeriksaan', val:EXAMINATIONS.length,                                       icon:'scale',       color:'blue'},
+    {label:'Berlangsung',       val:EXAMINATIONS.filter(e=>e.status==='berlangsung').length,    icon:'clock',       color:'yellow'},
+    {label:'Terjadwal',         val:EXAMINATIONS.filter(e=>e.status==='terjadwal').length,      icon:'calendar',    color:'purple'},
+    {label:'Selesai',           val:EXAMINATIONS.filter(e=>e.status==='selesai').length,        icon:'check-circle',color:'green'},
+  ]);
+  const rows = EXAMINATIONS.map(e => `
+    <tr>
+      <td><span class="fw7 c-primary fs12 mono">${e.no}</span></td>
+      <td class="fw6 c-primary fs12">${e.case_no}</td>
+      <td class="fw6">${e.subject}</td>
+      <td class="fs12">${e.examiner}</td>
+      <td class="fs12 c-muted">${e.schedule}</td>
+      <td class="fs12 c-muted">${e.venue}</td>
+      <td>${examBadge(e.status)}</td>
+      <td><button class="btn btn-ghost btn-sm btn-icon"><i data-lucide="eye" style="width:14px;height:14px"></i></button></td>
+    </tr>
+  `).join('');
+  document.getElementById('exam-tbody').innerHTML = rows;
+  document.getElementById('exam-info').textContent = `Menampilkan ${EXAMINATIONS.length} data`;
+}
+function examBadge(s) {
+  const m={terjadwal:'badge-info',berlangsung:'badge-warning',selesai:'badge-success',ditunda:'badge-danger'};
+  const l={terjadwal:'Terjadwal',berlangsung:'Berlangsung',selesai:'Selesai',ditunda:'Ditunda'};
+  return `<span class="badge ${m[s]||'badge-gray'}">${l[s]||s}</span>`;
+}
+
+function renderDecisions() {
+  document.getElementById('dec-stats').innerHTML = makeStats([
+    {label:'Total SK',        val:DECISIONS.length,                                    icon:'book-open',   color:'blue'},
+    {label:'Hukuman Ringan',  val:DECISIONS.filter(d=>d.level==='ringan').length,      icon:'file-text',   color:'green'},
+    {label:'Hukuman Sedang',  val:DECISIONS.filter(d=>d.level==='sedang').length,      icon:'clock',       color:'yellow'},
+    {label:'Hukuman Berat',   val:DECISIONS.filter(d=>d.level==='berat').length,       icon:'alert-triangle',color:'red'},
+  ]);
+  const rows = DECISIONS.map(d => `
+    <tr>
+      <td><span class="fw7 c-primary fs12 mono">${d.no}</span></td>
+      <td class="fs12 c-muted">${d.date}</td>
+      <td><div class="fw6">${d.employee}</div><div class="mono fs11 c-muted">${d.nip}</div></td>
+      <td class="fs12">${d.type}</td>
+      <td>${levelBadge(d.level)}</td>
+      <td class="fs12 c-muted">${d.effective}</td>
+      <td>${decStatusBadge(d.status)}</td>
+      <td><div class="flex gap8">
+        <button class="btn btn-ghost btn-sm btn-icon" onclick="viewDecision(${d.id})"><i data-lucide="eye" style="width:14px;height:14px"></i></button>
+        <button class="btn btn-ghost btn-sm btn-icon" onclick="viewDecision(${d.id})"><i data-lucide="download" style="width:14px;height:14px"></i></button>
+      </div></td>
+    </tr>
+  `).join('');
+  document.getElementById('dec-tbody').innerHTML = rows;
+  document.getElementById('dec-info').textContent = `Menampilkan ${DECISIONS.length} data`;
+}
+function decStatusBadge(s) {
+  const m={berlaku:'badge-success',menunggu:'badge-info',dicabut:'badge-danger'};
+  const l={berlaku:'Berlaku',menunggu:'Menunggu',dicabut:'Dicabut'};
+  return `<span class="badge ${m[s]||'badge-gray'}">${l[s]||s}</span>`;
+}
+
+function renderEmployees() {
+  const pns  = EMPLOYEES.filter(e=>e.type==='PNS').length;
+  const pppk = EMPLOYEES.filter(e=>e.type==='PPPK').length;
+  document.getElementById('emp-stats').innerHTML = makeStats([
+    {label:'Total ASN',  val:EMPLOYEES.length, icon:'users',       color:'blue'},
+    {label:'PNS',        val:pns,              icon:'user-check',  color:'green'},
+    {label:'PPPK',       val:pppk,             icon:'user',        color:'purple'},
+    {label:'Aktif',      val:EMPLOYEES.filter(e=>e.status==='active').length, icon:'check-circle',color:'yellow'},
+  ]);
+  renderTableData('emp', EMPLOYEES, (e) => `
+    <td><span class="mono fs11">${e.nip}</span></td>
+    <td class="fw6">${e.name}</td>
+    <td class="fs12 c-muted">${e.jabatan}</td>
+    <td class="fs12">${e.unit}</td>
+    <td><span class="badge ${e.type==='PNS'?'badge-success':'badge-purple'}">${e.type}</span></td>
+    <td class="fs12 c-muted">${e.rank}</td>
+    <td><span class="badge badge-success">Aktif</span></td>
+    <td><div class="flex gap8">
+      <button class="btn btn-ghost btn-sm btn-icon" onclick="viewEmployee(${e.id})"><i data-lucide="eye" style="width:14px;height:14px"></i></button>
+      <button class="btn btn-ghost btn-sm btn-icon" onclick="viewEmployee(${e.id})"><i data-lucide="edit" style="width:14px;height:14px"></i></button>
+    </div></td>
+  `, 'emp-info', 'emp-pages');
+}
+
+function renderAnalytics() {
+  document.getElementById('ana-stats').innerHTML = makeStats([
+    {label:'Total Kasus 2026',      val:CASES.length,    icon:'folder-open',  color:'blue'},
+    {label:'Pelanggaran Kehadiran', val:4,               icon:'clock',        color:'yellow'},
+    {label:'SK Diterbitkan',        val:DECISIONS.length,icon:'book-open',    color:'purple'},
+    {label:'Tingkat Selesai',       val:'83%',           icon:'check-circle', color:'green'},
+  ]);
+  setTimeout(() => {
+    renderChart('chart-monthly','bar',
+      ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'],
+      [2,1,3,2,4,3,5,4,6,8,0,0], ['#2563eb']
+    );
+    renderChart('chart-dist','doughnut',
+      ['Kehadiran','Kode Etik','Kinerja','Penyalahgunaan','Pidana'],
+      [4,2,2,1,1],
+      ['#2563eb','#7c3aed','#d97706','#dc2626','#0ea5e9']
+    );
+    renderChart('chart-level','doughnut',
+      ['Ringan','Sedang','Berat'],
+      [DECISIONS.filter(d=>d.level==='ringan').length,DECISIONS.filter(d=>d.level==='sedang').length,DECISIONS.filter(d=>d.level==='berat').length],
+      ['#16a34a','#d97706','#dc2626']
+    );
+    renderChart('chart-attend','line',
+      ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt'],
+      [96,94,97,95,93,96,95,97,94,92],
+      ['#16a34a']
+    );
+  }, 100);
+}
+
+function renderAuditLog() {
+  const logins = AUDIT_LOGS.filter(l=>l.action==='LOGIN').length;
+  const changes= AUDIT_LOGS.filter(l=>['CREATE','UPDATE'].includes(l.action)).length;
+  document.getElementById('audit-stats').innerHTML = makeStats([
+    {label:'Total Log',      val:AUDIT_LOGS.length, icon:'shield',       color:'blue'},
+    {label:'Login',          val:logins,            icon:'eye',          color:'green'},
+    {label:'Perubahan Data', val:changes,           icon:'edit',         color:'yellow'},
+    {label:'Export',         val:AUDIT_LOGS.filter(l=>l.action==='EXPORT').length, icon:'download',color:'purple'},
+  ]);
+  renderTableData('audit', AUDIT_LOGS, (l) => `
+    <td class="mono fs11 c-muted" style="white-space:nowrap">${l.time}</td>
+    <td class="fw6">${l.user}</td>
+    <td>${auditActionBadge(l.action)}</td>
+    <td class="fs12" style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.detail}</td>
+    <td class="fs12 c-muted">${l.module}</td>
+    <td class="mono fs11 c-muted">${l.ip}</td>
+  `, 'audit-info', 'audit-pages');
+}
+function auditActionBadge(a) {
+  const m={LOGIN:'badge-info',LOGOUT:'badge-gray',CREATE:'badge-warning',UPDATE:'badge-warning',DELETE:'badge-danger',VIEW:'badge-gray',EXPORT:'badge-success',SYNC:'badge-success'};
+  return `<span class="badge ${m[a]||'badge-gray'}">${a}</span>`;
+}
+
+function populateSettingsUsers() {
+  const rows = Object.values(DEMO_USERS).map(u => `
+    <tr>
+      <td class="fw6">${u.name}</td>
+      <td class="mono fs11 c-muted">${u.nip}</td>
+      <td><span class="badge" style="background:${u.color}18;color:${u.color};border:1px solid ${u.color}33">${ROLE_LABELS[u.role]}</span></td>
+      <td class="fs12 c-muted">${u.unit}</td>
+      <td><span class="badge badge-success">Aktif</span></td>
+      <td><div class="flex gap8">
+        <button class="btn btn-ghost btn-sm btn-icon"><i data-lucide="edit" style="width:14px;height:14px"></i></button>
+        <button class="btn btn-danger btn-sm btn-icon"><i data-lucide="trash-2" style="width:14px;height:14px"></i></button>
+      </div></td>
+    </tr>
+  `).join('');
+  const tbody = document.getElementById('settings-users-tbody');
+  if (tbody) tbody.innerHTML = rows;
+}
+
+function populateEmployeeDropdown() {
+  const sel = document.getElementById('rep-employee');
+  if (!sel) return;
+  EMPLOYEES.forEach(e => {
+    const opt = document.createElement('option');
+    opt.value = e.id;
+    opt.textContent = `${e.name} (${e.nip})`;
+    sel.appendChild(opt);
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+// TABLE HELPERS
+// ══════════════════════════════════════════════════════════════
+const tableState = {};
+function renderTableData(key, data, rowFn, infoId, pagesId) {
+  const PAGE_SIZE = 8;
+  if (!tableState[key]) tableState[key] = { page: 1, filter: '' };
+  const state   = tableState[key];
+  const filtered= data.filter(r => {
+    const val = state.filter.toLowerCase();
+    return !val || Object.values(r).some(v => String(v).toLowerCase().includes(val));
+  });
+  const total   = filtered.length;
+  const totalP  = Math.ceil(total / PAGE_SIZE) || 1;
+  state.page    = Math.min(state.page, totalP);
+  const sliced  = filtered.slice((state.page-1)*PAGE_SIZE, state.page*PAGE_SIZE);
+  const tbody   = document.getElementById(key+'-tbody');
+  if (tbody) tbody.innerHTML = sliced.length ? sliced.map(r=>`<tr>${rowFn(r)}</tr>`).join('') : `<tr><td colspan="20" class="text-center c-muted" style="padding:40px">Tidak ada data ditemukan.</td></tr>`;
+  const info = document.getElementById(infoId);
+  if (info) info.textContent = `Menampilkan ${sliced.length} dari ${total} data`;
+  const pages = document.getElementById(pagesId);
+  if (pages) {
+    let ph = `<button class="page-btn" onclick="goPage('${key}',${state.page-1},'${infoId}','${pagesId}')" ${state.page<=1?'disabled':''}>‹</button>`;
+    for (let i=1;i<=Math.min(totalP,5);i++) {
+      ph += `<button class="page-btn ${i===state.page?'active':''}" onclick="goPage('${key}',${i},'${infoId}','${pagesId}')">${i}</button>`;
+    }
+    ph += `<button class="page-btn" onclick="goPage('${key}',${state.page+1},'${infoId}','${pagesId}')" ${state.page>=totalP?'disabled':''}>›</button>`;
+    pages.innerHTML = ph;
+  }
+  if (window.lucide) lucide.createIcons();
+}
+
+function goPage(key, page, infoId, pagesId) {
+  if (!tableState[key]) return;
+  tableState[key].page = page;
+  renderPage(currentPage);
+}
+function filterTable(key, val) {
+  if (!tableState[key]) tableState[key] = { page:1, filter:'' };
+  tableState[key].filter = val;
+  tableState[key].page   = 1;
+  renderPage(currentPage);
+}
+function filterAttStatus(val) { filterTable('att', val); }
+
+// ══════════════════════════════════════════════════════════════
+// STAT CARD HELPER
+// ══════════════════════════════════════════════════════════════
+function makeStats(items) {
+  const icons = {
+    'users':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:22px;height:22px"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+    'check-circle':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:22px;height:22px"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
+    'folder-open':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:22px;height:22px"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>',
+    'file-text':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:22px;height:22px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>',
+    'clock':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:22px;height:22px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+    'alert-triangle':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:22px;height:22px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+    'calendar':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:22px;height:22px"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+    'x-circle':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:22px;height:22px"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
+    'scale':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:22px;height:22px"><line x1="12" y1="3" x2="12" y2="21"/><path d="M17 6H7"/><path d="M6 3l-3 9c-.55 1.96 2.24 2 3 2s3.55-.04 3-2L6 3z"/><path d="M18 3l-3 9c-.55 1.96 2.24 2 3 2s3.55-.04 3-2L18 3z"/></svg>',
+    'book-open':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:22px;height:22px"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>',
+    'shield':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:22px;height:22px"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+    'bar-chart-3':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:22px;height:22px"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
+    'eye':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:22px;height:22px"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>',
+    'user-check':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:22px;height:22px"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>',
+    'user':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:22px;height:22px"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+    'download':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:22px;height:22px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
+    'edit':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:22px;height:22px"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
+  };
+  return items.map(s => `
+    <div class="stat-card">
+      <div class="stat-icon ${s.color}">${icons[s.icon]||''}</div>
+      <div>
+        <div class="stat-label">${s.label}</div>
+        <div class="stat-value">${s.val}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ══════════════════════════════════════════════════════════════
+// CHART HELPER
+// ══════════════════════════════════════════════════════════════
+function renderChart(id, type, labels, data, colors) {
+  const canvas = document.getElementById(id);
+  if (!canvas) return;
+  if (chartInstances[id]) { chartInstances[id].destroy(); }
+  const isDoughnut = type === 'doughnut';
+  chartInstances[id] = new Chart(canvas, {
+    type,
+    data: {
+      labels,
+      datasets: [{
+        data: type === 'doughnut' ? data : undefined,
+        y: type !== 'doughnut' ? undefined : undefined,
+        label: 'Data',
+        data: data,
+        backgroundColor: isDoughnut ? colors.map(c=>c+'99') : colors[0]+'66',
+        borderColor:     isDoughnut ? colors : [colors[0]],
+        borderWidth: 2,
+        borderRadius: type==='bar' ? 4 : 0,
+        tension: 0.4,
+        fill: type==='line',
+        pointBackgroundColor: colors[0],
+      }]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ display:isDoughnut, position:'bottom', labels:{ color:'#8b949e', boxWidth:12, padding:16, font:{size:11} } } },
+      scales: isDoughnut ? {} : {
+        x:{ ticks:{ color:'#6e7681', font:{size:11} }, grid:{ color:'#30363d33' } },
+        y:{ ticks:{ color:'#6e7681', font:{size:11} }, grid:{ color:'#30363d55' }, beginAtZero:true }
+      }
+    }
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+// MODAL
+// ══════════════════════════════════════════════════════════════
+function showModal(id) { document.getElementById(id).classList.remove('hidden'); }
+function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+function closeModalBg(e, id) { if (e.target.classList.contains('modal-bg')) closeModal(id); }
+
+function submitReport() {
+  const title = document.getElementById('rep-title').value.trim();
+  const desc  = document.getElementById('rep-desc').value.trim();
+  const emp   = document.getElementById('rep-employee').value;
+  if (!title || !desc || !emp) { alert('Harap lengkapi semua field yang wajib diisi.'); return; }
+  closeModal('modal-report');
+  const empObj = EMPLOYEES.find(e=>String(e.id)===String(emp));
+  const newRep = {
+    id: REPORTS.length+1, no:`LAP-2026-${String(REPORTS.length+1).padStart(4,'0')}`,
+    date: new Date().toISOString().split('T')[0], employee: empObj?.name||'Pegawai',
+    cat:'Lainnya', title, priority:'sedang', status:'diajukan'
+  };
+  REPORTS.unshift(newRep);
+  if (currentPage==='reports') renderReports();
+  document.getElementById('rep-title').value = '';
+  document.getElementById('rep-desc').value = '';
+  document.getElementById('rep-employee').value = '';
+}
+function submitEmployee() {
+  closeModal('modal-emp');
+  alert('Data pegawai berhasil disimpan!');
+}
+
+// ══════════════════════════════════════════════════════════════
+// INIT LUCIDE ICONS ON LOAD
+// ══════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  if (window.lucide) lucide.createIcons();
+  document.getElementById('att-date').valueAsDate = new Date();
+});
+
+// ══════════════════════════════════════════════════════════════
+// DETAIL MODALS
+// ══════════════════════════════════════════════════════════════
+function viewReport(id) {
+  const r = REPORTS.find(x=>x.id===id); if(!r) return;
+  document.getElementById('modal-view-title').textContent = 'Detail Laporan — '+r.no;
+  document.getElementById('modal-view-body').innerHTML = `
+    <div class="detail-row"><div class="detail-label">No. Laporan</div><div class="detail-val fw7 c-primary mono">${r.no}</div></div>
+    <div class="detail-row"><div class="detail-label">Tanggal</div><div class="detail-val">${r.date}</div></div>
+    <div class="detail-row"><div class="detail-label">Terlapor</div><div class="detail-val fw6">${r.employee}</div></div>
+    <div class="detail-row"><div class="detail-label">Kategori</div><div class="detail-val">${r.cat}</div></div>
+    <div class="detail-row"><div class="detail-label">Prioritas</div><div class="detail-val">${priorityBadge(r.priority)}</div></div>
+    <div class="detail-row"><div class="detail-label">Status</div><div class="detail-val">${repStatusBadge(r.status)}</div></div>
+    <div class="detail-row"><div class="detail-label">Perihal</div><div class="detail-val fw6">${r.title}</div></div>
+    <div style="margin-top:16px">
+      <div class="fl">Ubah Status</div>
+      <div class="flex gap8" style="margin-top:8px">
+        ${['diajukan','diverifikasi','jadi_kasus','ditolak'].map(s=>`<button class="btn btn-outline btn-sm" onclick="updateRepStatus(${r.id},'${s}')">${{diajukan:'Diajukan',diverifikasi:'Verifikasi',jadi_kasus:'Jadikan Kasus',ditolak:'Tolak'}[s]}</button>`).join('')}
+      </div>
+    </div>
+  `;
+  showModal('modal-view');
+}
+function viewCase(id) {
+  const c = CASES.find(x=>x.id===id); if(!c) return;
+  document.getElementById('modal-view-title').textContent = 'Detail Kasus — '+c.no;
+  const timeline = [
+    { dot:'tl-blue',   action:`Kasus dibuat dari laporan`,    time:'2026-10-02 08:00', actor:currentUser.name },
+    { dot:'tl-yellow', action:`Status berubah ke Penyelidikan`, time:'2026-10-05 09:30', actor:'Dr. Ahmad Suryadi' },
+    { dot:'tl-green',  action:`Pemeriksaan dijadwalkan`,        time:'2026-10-12 11:00', actor:'Bambang Prakoso' },
+  ];
+  const tlHtml = timeline.map(t=>`<div class="tl-item"><div class="tl-dot ${t.dot}"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="4"/></svg></div><div class="tl-body"><div class="tl-action">${t.action}</div><div class="tl-meta">${t.actor} · ${t.time}</div></div></div>`).join('');
+  document.getElementById('modal-view-body').innerHTML = `
+    <div class="two-col mb16">
+      <div>
+        <div class="detail-row"><div class="detail-label">No. Kasus</div><div class="detail-val fw7 c-primary mono">${c.no}</div></div>
+        <div class="detail-row"><div class="detail-label">Terlapor</div><div class="detail-val fw6">${c.employee}</div></div>
+        <div class="detail-row"><div class="detail-label">Kategori</div><div class="detail-val">${c.cat}</div></div>
+        <div class="detail-row"><div class="detail-label">Perihal</div><div class="detail-val">${c.title}</div></div>
+      </div>
+      <div>
+        <div class="detail-row"><div class="detail-label">Status</div><div class="detail-val">${caseStatusBadge(c.status)}</div></div>
+        <div class="detail-row"><div class="detail-label">Tingkat</div><div class="detail-val">${levelBadge(c.level)}</div></div>
+        <div class="detail-row"><div class="detail-label">Prioritas</div><div class="detail-val">${priorityBadge(c.priority)}</div></div>
+        <div class="detail-row"><div class="detail-label">PIC</div><div class="detail-val">${c.pic}</div></div>
+      </div>
+    </div>
+    <div style="margin-bottom:16px">
+      <div class="card-title mb8">Ubah Status Kasus</div>
+      <div class="flex gap8" style="flex-wrap:wrap">
+        ${['baru','penyelidikan','pemeriksaan','putusan','selesai'].map(s=>`<button class="btn btn-${c.status===s?'primary':'outline'} btn-sm" onclick="updateCaseStatus(${c.id},'${s}')">${{baru:'Baru',penyelidikan:'Penyelidikan',pemeriksaan:'Pemeriksaan',putusan:'Putusan',selesai:'Selesai'}[s]}</button>`).join('')}
+      </div>
+    </div>
+    <div class="card-title mb8">Timeline Kasus</div>
+    <div class="timeline">${tlHtml}</div>
+  `;
+  showModal('modal-view');
+}
+function viewDecision(id) {
+  const d = DECISIONS.find(x=>x.id===id); if(!d) return;
+  document.getElementById('modal-view-title').textContent = 'Detail SK — '+d.no;
+  document.getElementById('modal-view-body').innerHTML = `
+    <div class="detail-row"><div class="detail-label">No. SK</div><div class="detail-val fw7 c-primary mono">${d.no}</div></div>
+    <div class="detail-row"><div class="detail-label">Tanggal Terbit</div><div class="detail-val">${d.date}</div></div>
+    <div class="detail-row"><div class="detail-label">Pegawai</div><div class="detail-val fw6">${d.employee}</div></div>
+    <div class="detail-row"><div class="detail-label">NIP</div><div class="detail-val mono fs12">${d.nip}</div></div>
+    <div class="detail-row"><div class="detail-label">Jenis Hukuman</div><div class="detail-val fw6">${d.type}</div></div>
+    <div class="detail-row"><div class="detail-label">Tingkat</div><div class="detail-val">${levelBadge(d.level)}</div></div>
+    <div class="detail-row"><div class="detail-label">Berlaku Mulai</div><div class="detail-val">${d.effective}</div></div>
+    <div class="detail-row"><div class="detail-label">Status</div><div class="detail-val">${decStatusBadge(d.status)}</div></div>
+    <div class="detail-row"><div class="detail-label">Dasar Hukum</div><div class="detail-val fs12 c-muted">PP No. 94 Tahun 2021 tentang Disiplin PNS</div></div>
+    <div style="margin-top:16px;padding:12px;background:var(--bg);border-radius:var(--radius);border:1px solid var(--border)">
+      <div class="fs12 fw7 mb8">Isi Putusan</div>
+      <div class="fs12 c-muted">Berdasarkan hasil pemeriksaan, pegawai yang bersangkutan terbukti melakukan pelanggaran disiplin dan dijatuhi hukuman ${d.type} sesuai dengan ketentuan peraturan perundang-undangan yang berlaku.</div>
+    </div>
+    <div class="flex gap8" style="margin-top:16px">
+      <button class="btn btn-outline btn-sm" onclick="closeModal('modal-view')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Unduh SK (PDF)
+      </button>
+    </div>
+  `;
+  showModal('modal-view');
+}
+function viewEmployee(id) {
+  const e = EMPLOYEES.find(x=>x.id===id); if(!e) return;
+  document.getElementById('modal-view-title').textContent = 'Detail Pegawai — '+e.name;
+  const riwayat = CASES.filter(c=>c.employee===e.name);
+  document.getElementById('modal-view-body').innerHTML = `
+    <div class="two-col mb16">
+      <div>
+        <div class="detail-row"><div class="detail-label">NIP</div><div class="detail-val mono fw7">${e.nip}</div></div>
+        <div class="detail-row"><div class="detail-label">Nama</div><div class="detail-val fw6">${e.name}</div></div>
+        <div class="detail-row"><div class="detail-label">Jabatan</div><div class="detail-val">${e.jabatan}</div></div>
+        <div class="detail-row"><div class="detail-label">Unit Kerja</div><div class="detail-val">${e.unit}</div></div>
+      </div>
+      <div>
+        <div class="detail-row"><div class="detail-label">Jenis ASN</div><div class="detail-val"><span class="badge ${e.type==='PNS'?'badge-success':'badge-purple'}">${e.type}</span></div></div>
+        <div class="detail-row"><div class="detail-label">Gol/Pangkat</div><div class="detail-val">${e.rank||'—'}</div></div>
+        <div class="detail-row"><div class="detail-label">Tgl Bergabung</div><div class="detail-val">${e.join}</div></div>
+        <div class="detail-row"><div class="detail-label">Status</div><div class="detail-val"><span class="badge badge-success">Aktif</span></div></div>
+      </div>
+    </div>
+    <div class="card-title mb8">Riwayat Kasus Disiplin</div>
+    ${riwayat.length ? `<div class="table-wrap"><table><thead><tr><th>No. Kasus</th><th>Perihal</th><th>Tingkat</th><th>Status</th></tr></thead><tbody>${riwayat.map(c=>`<tr><td class="mono fs12">${c.no}</td><td class="fs12">${c.title}</td><td>${levelBadge(c.level)}</td><td>${caseStatusBadge(c.status)}</td></tr>`).join('')}</tbody></table></div>` : `<div class="empty-state" style="padding:20px"><p>Tidak ada riwayat kasus disiplin.</p></div>`}
+  `;
+  showModal('modal-view');
+}
+
+// Update status helpers
+function updateRepStatus(id, status) {
+  const r = REPORTS.find(x=>x.id===id);
+  if(r) { r.status=status; AUDIT_LOGS.unshift({time:new Date().toLocaleString('id-ID'),user:currentUser.name,action:'UPDATE_STATUS',detail:`Status laporan ${r.no} diubah ke ${status}`,module:'reports',ip:'127.0.0.1'}); }
+  closeModal('modal-view'); if(currentPage==='reports') renderReports();
+}
+function updateCaseStatus(id, status) {
+  const c = CASES.find(x=>x.id===id);
+  if(c) { c.status=status; AUDIT_LOGS.unshift({time:new Date().toLocaleString('id-ID'),user:currentUser.name,action:'UPDATE_STATUS',detail:`Status kasus ${c.no} diubah ke ${status}`,module:'cases',ip:'127.0.0.1'}); }
+  closeModal('modal-view'); if(currentPage==='cases') renderCases();
+}
+</script>
+
+<!-- ── MODAL DETAIL / VIEW ── -->
+<div class="modal-bg hidden" id="modal-view" onclick="closeModalBg(event,'modal-view')">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:700px">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-view-title">Detail</div>
+      <button class="modal-close" onclick="closeModal('modal-view')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body" id="modal-view-body"></div>
+    <div class="modal-footer"><button class="btn btn-outline btn-sm" onclick="closeModal('modal-view')">Tutup</button></div>
+  </div>
+</div>
+
+</body>
+</html>

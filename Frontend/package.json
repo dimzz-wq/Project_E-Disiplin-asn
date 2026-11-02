@@ -1,0 +1,35 @@
+{
+  "name": "e-disiplin-asn",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+
+    "server:dev": "cd server && node src/server.js",
+    "server:start": "cd server && NODE_ENV=production node src/server.js",
+
+    "db:seed": "cd server && node src/database/seed.js",
+    "db:seed:extra": "cd server && node src/database/extra-seed.js",
+    "db:seed:all": "cd server && node src/database/seed.js && node src/database/extra-seed.js",
+
+    "docker:build": "docker compose build",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f",
+    "docker:reset": "docker compose down -v && docker compose up -d"
+  },
+  "devDependencies": {
+    "vite": "^8.3.0"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "^6.1.2",
+    "lucide-react": "^1.57.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-router-dom": "^7.18.4",
+    "recharts": "^3.10.1"
+  }
+}
