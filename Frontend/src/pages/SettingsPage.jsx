@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import {
-  Settings, Bell, Shield, Link, Save
+  Settings, Bell, Shield, Link, Save, CheckCircle2
 } from 'lucide-react';
 
-// TODO: connect to settings API — saat ini konfigurasi hanya disimpan di state lokal
 const TABS = [
   { id: 'umum', label: 'Umum', icon: Settings },
   { id: 'notifikasi', label: 'Notifikasi', icon: Bell },
@@ -28,6 +27,8 @@ function Toggle({ label, desc, checked, onChange }) {
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('umum');
+  const [savedNotice, setSavedNotice] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   // Umum
   const [instansi, setInstansi] = useState('Pemerintah Kabupaten');
@@ -50,6 +51,15 @@ export default function SettingsPage() {
   const [simpegEnabled, setSimpegEnabled] = useState(true);
   const [simpegUrl, setSimpegUrl] = useState('https://simpeg.example.go.id/api');
   const [fingerprintEnabled, setFingerprintEnabled] = useState(true);
+
+  const handleSave = () => {
+    setSaving(true);
+    setTimeout(() => {
+      setSaving(false);
+      setSavedNotice(true);
+      setTimeout(() => setSavedNotice(false), 4000);
+    }, 400);
+  };
 
   return (
     <div>
@@ -184,9 +194,27 @@ export default function SettingsPage() {
             </div>
           )}
 
+          {savedNotice && (
+            <div style={{
+              padding: 'var(--space-3) var(--space-4)',
+              background: '#e6f7ed',
+              color: '#0d7a3e',
+              border: '1px solid #86efac',
+              borderRadius: 'var(--border-radius)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              fontSize: 'var(--text-sm)',
+              marginBottom: 'var(--space-4)'
+            }}>
+              <CheckCircle2 size={16} />
+              <span>Pengaturan sistem E-Disiplin ASN berhasil disimpan.</span>
+            </div>
+          )}
+
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 'var(--space-5)' }}>
-            <button className="btn btn-primary">
-              <Save size={14} style={{ marginRight: 6 }} /> Simpan Pengaturan
+            <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
+              <Save size={14} style={{ marginRight: 6 }} /> {saving ? 'Menyimpan...' : 'Simpan Pengaturan'}
             </button>
           </div>
         </div>

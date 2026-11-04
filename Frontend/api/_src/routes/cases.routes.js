@@ -161,4 +161,116 @@ router.patch('/:id/status', async (req, res, next) => {
   }
 });
 
+// POST /api/cases (Buat Kasus Baru)
+router.post('/', async (req, res, next) => {
+  try {
+    const {
+      subject_employee_id, employee_id,
+      title, description, level = 'ringan',
+      priority = 'sedang', status = 'baru',
+      pic_id, deadline, report_id
+    } = req.body || {};
+
+    const targetEmpId = subject_employee_id || employee_id;
+    if (!targetEmpId || !title) {
+      return res.status(400).json({ success: false, message: 'Pegawai terlapor dan judul kasus wajib diisi.' });
+    }
+
+    // Generate case number: KASUS-YYYY-NNNN
+    const year = new Date().getFullYear();
+    const rows = await query('SELECT case_no FROM cases WHERE case_no ILIKE ? ORDER BY id DESC LIMIT 1', [`KASUS-${year}-%`]);
+    let nextNum = 1;
+    if (rows && rows.length > 0 && rows[0].case_no) {
+      const parts = rows[0].case_no.split('-');
+      const num = parseInt(parts[2], 10);
+      if (!Number.isNaN(num)) nextNum = num + 1;
+    }
+    const case_no = `KASUS-${year}-${String(nextNum).padStart(4, '0')}`;
+
+    const inserted = await query(
+      `INSERT INTO cases (case_no, report_id, subject_employee_id, title, description, level, priority, status, pic_id, deadline)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       RETURNING *`,
+      [
+        case_no,
+        report_id || null,
+        targetEmpId,
+        title.trim(),
+        description ? description.trim() : 'Kasus baru didaftarkan',
+        level,
+        priority,
+        status,
+        pic_id || req.user.id,
+        deadline || null
+      ]
+    );
+
+    // Initial timeline entry
+    await query(
+      'INSERT INTO case_timeline (case_id, action, actor_id, type) VALUES (?, ?, ?, ?)',
+      [inserted[0].id, `Kasus ${case_no} dibuat`, req.user.id, 'case_created']
+    );
+
+    res.status(201).json({ success: true, message: 'Kasus berhasil didaftarkan.', data: inserted[0] });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PUT /api/cases/:id (Update Kasus)
+router.put('/:id', async (req, res, next) => {
+  try {
+    const { title, description, level, priority, status, pic_id, deadline, notes } = req.body || {};
+    const existing = await query('SELECT * FROM cases WHERE id = ? LIMIT 1', [req.params.id]);
+    if (existing.length === 0) {
+      return res.status(404).json({ success: false, message: 'Kasus tidak ditemukan.' });
+    }
+
+    const updated = await query(
+      `UPDATE cases
+       SET title = COALESCE(?, title),
+           description = COALESCE(?, description),
+           level = COALESCE(?, level),
+           priority = COALESCE(?, priority),
+           status = COALESCE(?, status),
+           pic_id = COALESCE(?, pic_id),
+           deadline = COALESCE(?, deadline),
+           updated_at = NOW()
+       WHERE id = ?
+       RETURNING *`,
+      [title, description, level, priority, status, pic_id, deadline, req.params.id]
+    );
+
+    if (notes || status) {
+      await query(
+        'INSERT INTO case_timeline (case_id, action, actor_id, type) VALUES (?, ?, ?, ?)',
+        [req.params.id, notes || `Kasus diperbarui: status ${updated[0].status}`, req.user.id, 'update']
+      );
+    }
+
+    res.json({ success: true, message: 'Kasus berhasil diperbarui.', data: updated[0] });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/cases/:id/timeline (Tambah catatan kronologi)
+router.post('/:id/timeline', async (req, res, next) => {
+  try {
+    const { action, type = 'note' } = req.body || {};
+    if (!action) {
+      return res.status(400).json({ success: false, message: 'Catatan aksi wajib diisi.' });
+    }
+
+    const inserted = await query(
+      'INSERT INTO case_timeline (case_id, action, actor_id, type) VALUES (?, ?, ?, ?) RETURNING *',
+      [req.params.id, action.trim(), req.user.id, type]
+    );
+
+    res.status(201).json({ success: true, message: 'Kronologi berhasil ditambahkan.', data: inserted[0] });
+  } catch (err) {
+    next(err);
+  }
+});
+
 export default router;

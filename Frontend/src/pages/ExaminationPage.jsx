@@ -2,9 +2,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Scale, Search, Calendar, Eye, CheckCircle,
-  Clock, ChevronLeft, ChevronRight, Users, FileText, RefreshCw
+  Clock, ChevronLeft, ChevronRight, Users, FileText, RefreshCw,
+  Plus, X, Printer, CheckCircle2, AlertTriangle
 } from 'lucide-react';
-import { examinationsService } from '../services';
+import { examinationsService, casesService } from '../services';
 
 const STATUS_BADGE = {
   terjadwal:   'badge-info',
@@ -24,9 +25,24 @@ export default function ExaminationPage() {
   const [search, setSearch]             = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [examinations, setExaminations] = useState([]);
+  const [cases, setCases]               = useState([]);
   const [loading, setLoading]           = useState(true);
   const [error, setError]               = useState(null);
+  const [feedback, setFeedback]         = useState(null);
   const [pagination, setPagination]     = useState({ page: 1, total: 0, total_pages: 1, limit: 20 });
+
+  // Modal State
+  const [selectedExam, setSelectedExam] = useState(null);
+  const [isScheduleOpen, setIsScheduleOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [scheduleForm, setScheduleForm] = useState({
+    case_id: '',
+    schedule_time: '',
+    venue: 'Ruang Pemeriksaan Inspektorat Lt. 2',
+    notes: 'Pemeriksaan lanjutan dan klarifikasi bukti keterangan saksi',
+    status: 'terjadwal'
+  });
 
   const fetchData = useCallback(async (page = 1) => {
     setLoading(true);
@@ -50,6 +66,47 @@ export default function ExaminationPage() {
     fetchData(1);
   }, [fetchData]);
 
+  // Load cases for scheduling
+  useEffect(() => {
+    if (isScheduleOpen && cases.length === 0) {
+      casesService.getAll({ limit: 50 }).then(res => {
+        if (res.success && Array.isArray(res.data)) {
+          setCases(res.data);
+          if (res.data.length > 0 && !scheduleForm.case_id) {
+            setScheduleForm(prev => ({ ...prev, case_id: res.data[0].id }));
+          }
+        }
+      }).catch(() => {});
+    }
+  }, [isScheduleOpen, cases.length, scheduleForm.case_id]);
+
+  const showNotification = (msg, isErr = false) => {
+    setFeedback({ msg, isErr });
+    setTimeout(() => setFeedback(null), 4000);
+  };
+
+  const handleScheduleSubmit = async (e) => {
+    e.preventDefault();
+    if (!scheduleForm.case_id) {
+      return showNotification('Pilih kasus yang akan diperiksa.', true);
+    }
+    setIsSubmitting(true);
+    try {
+      const res = await examinationsService.create(scheduleForm);
+      if (res.success) {
+        showNotification('Agenda pemeriksaan baru berhasil dijadwalkan.');
+        setIsScheduleOpen(false);
+        fetchData(1);
+      } else {
+        showNotification(res.message || 'Gagal menjadwalkan pemeriksaan.', true);
+      }
+    } catch (err) {
+      showNotification(err.message || 'Terjadi kesalahan sistem.', true);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const filtered = examinations.filter(e => {
     if (!search) return true;
     const text = (
@@ -69,14 +126,41 @@ export default function ExaminationPage() {
     <div>
       <div className="page-header">
         <div>
-          <h1 className="page-title">Pemeriksaan</h1>
-          <p className="page-subtitle">Kelola proses pemeriksaan dan investigasi kasus pelanggaran</p>
+          <h1 className="page-title">Pemeriksaan & BAP</h1>
+          <p className="page-subtitle">Kelola proses pemeriksaan, berita acara, dan investigasi pelanggaran</p>
         </div>
-        <button className="btn btn-ghost btn-sm" onClick={() => fetchData(pagination.page)}
-          style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <RefreshCw size={14} /> Refresh
-        </button>
+        <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
+          <button
+            className="btn btn-primary"
+            onClick={() => setIsScheduleOpen(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+          >
+            <Plus size={16} /> Jadwalkan Pemeriksaan
+          </button>
+          <button className="btn btn-ghost btn-sm" onClick={() => fetchData(pagination.page)}
+            style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <RefreshCw size={14} /> Refresh
+          </button>
+        </div>
       </div>
+
+      {feedback && (
+        <div style={{
+          padding: 'var(--space-3) var(--space-4)',
+          borderRadius: 'var(--border-radius)',
+          marginBottom: 'var(--space-4)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          fontSize: 'var(--text-sm)',
+          background: feedback.isErr ? 'var(--danger-bg)' : '#e6f7ed',
+          color: feedback.isErr ? 'var(--danger)' : '#0d7a3e',
+          border: `1px solid ${feedback.isErr ? '#fca5a5' : '#86efac'}`
+        }}>
+          {feedback.isErr ? <AlertTriangle size={16} /> : <CheckCircle2 size={16} />}
+          <span>{feedback.msg}</span>
+        </div>
+      )}
 
       {/* Summary */}
       <div className="grid-stats" style={{ gridTemplateColumns: 'repeat(4, 1fr)', marginBottom: 'var(--space-5)' }}>
@@ -117,7 +201,8 @@ export default function ExaminationPage() {
 
           {loading ? (
             <div style={{ textAlign: 'center', padding: 'var(--space-8)', color: 'var(--text-muted)' }}>
-              <RefreshCw size={20} style={{ marginBottom: 8 }} /><p>Memuat data pemeriksaan...</p>
+              <RefreshCw size={20} style={{ animation: 'spin 1s linear infinite', marginBottom: 8 }} />
+              <p>Memuat data pemeriksaan...</p>
             </div>
           ) : (
             <>
@@ -132,7 +217,7 @@ export default function ExaminationPage() {
                       <th>Jadwal</th>
                       <th>Lokasi</th>
                       <th>Status</th>
-                      <th>Aksi</th>
+                      <th style={{ textAlign: 'center' }}>Aksi</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -167,11 +252,15 @@ export default function ExaminationPage() {
                           </span>
                         </td>
                         <td>
-                          <div style={{ display: 'flex', gap: 4 }}>
+                          <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
                             <button className="btn btn-sm btn-ghost btn-icon" title="Lihat kasus" onClick={() => navigate(`/cases/${e.case_id}`)}>
                               <Eye size={14} />
                             </button>
-                            <button className="btn btn-sm btn-ghost btn-icon" title="Lihat BAP">
+                            <button
+                              className="btn btn-sm btn-ghost btn-icon"
+                              title="Lihat & Cetak BAP"
+                              onClick={() => setSelectedExam(e)}
+                            >
                               <FileText size={14} />
                             </button>
                           </div>
@@ -196,6 +285,136 @@ export default function ExaminationPage() {
           )}
         </div>
       </div>
+
+      {/* BAP Details Modal */}
+      {selectedExam && (
+        <div className="modal-backdrop" onClick={() => setSelectedExam(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 640 }}>
+            <div className="modal-header">
+              <h3 className="modal-title">Berita Acara Pemeriksaan (BAP)</h3>
+              <button className="modal-close" onClick={() => setSelectedExam(null)}>
+                <X size={18} />
+              </button>
+            </div>
+            <div className="modal-body">
+              <div style={{ borderBottom: '2px solid #000', paddingBottom: 10, marginBottom: 14, textAlign: 'center' }}>
+                <h4 style={{ margin: 0, fontSize: 'var(--text-sm)' }}>INSPEKTORAT / TIM PEMERIKSA DISIPLIN</h4>
+                <h3 style={{ margin: '4px 0', fontSize: 'var(--text-base)', fontWeight: 800 }}>BERITA ACARA PEMERIKSAAN</h3>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)' }}>NO: {selectedExam.exam_no}</div>
+              </div>
+
+              <div className="detail-grid" style={{ marginBottom: 16 }}>
+                {[
+                  { label: 'Kasus', value: selectedExam.case_no },
+                  { label: 'Pegawai Terperiksa', value: selectedExam.employee_name },
+                  { label: 'NIP', value: selectedExam.employee_nip },
+                  { label: 'Pemeriksa', value: selectedExam.examiner_name },
+                  { label: 'Jadwal & Waktu', value: selectedExam.schedule_time ? new Date(selectedExam.schedule_time).toLocaleString('id-ID') : '-' },
+                  { label: 'Lokasi / Tempat', value: selectedExam.venue },
+                  { label: 'Status', value: selectedExam.status },
+                ].map((item, i) => (
+                  <div key={i} className="detail-item">
+                    <div className="detail-label">{item.label}</div>
+                    <div className="detail-value">{item.value || '-'}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ background: 'var(--bg-secondary)', padding: 'var(--space-3)', borderRadius: 'var(--border-radius)' }}>
+                <div style={{ fontWeight: 700, fontSize: 'var(--text-xs)', marginBottom: 4 }}>Catatan & Uraian Hasil Pemeriksaan:</div>
+                <div style={{ fontSize: 'var(--text-xs)', lineHeight: 1.6, whiteSpace: 'pre-wrap', color: 'var(--text-secondary)' }}>
+                  {selectedExam.notes || 'Pemeriksaan telah dilaksanakan sesuai ketentuan PP 94 Tahun 2021. Terperiksa telah memberikan keterangan secara jujur dan sadar.'}
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-outline" onClick={() => setSelectedExam(null)}>Tutup</button>
+              <button
+                className="btn btn-primary"
+                onClick={() => {
+                  window.print();
+                  showNotification('Perintah cetak BAP dikirim.');
+                }}
+              >
+                <Printer size={14} style={{ marginRight: 6 }} /> Cetak Lembar BAP
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Schedule Exam Modal */}
+      {isScheduleOpen && (
+        <div className="modal-backdrop" onClick={() => !isSubmitting && setIsScheduleOpen(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 520 }}>
+            <div className="modal-header">
+              <h3 className="modal-title">Jadwalkan Pemeriksaan / BAP</h3>
+              <button className="modal-close" onClick={() => setIsScheduleOpen(false)}>
+                <X size={18} />
+              </button>
+            </div>
+            <form onSubmit={handleScheduleSubmit}>
+              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 'var(--text-sm)', fontWeight: 600, marginBottom: 4 }}>Pilih Kasus</label>
+                  <select
+                    className="filter-select"
+                    style={{ width: '100%' }}
+                    value={scheduleForm.case_id}
+                    onChange={e => setScheduleForm({ ...scheduleForm, case_id: e.target.value })}
+                  >
+                    {cases.map(c => (
+                      <option key={c.id} value={c.id}>
+                        {c.case_no} — {c.employee_name} ({c.title})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 'var(--text-sm)', fontWeight: 600, marginBottom: 4 }}>Waktu & Tanggal Pemeriksaan</label>
+                  <input
+                    type="datetime-local"
+                    required
+                    className="filter-select"
+                    style={{ width: '100%' }}
+                    value={scheduleForm.schedule_time}
+                    onChange={e => setScheduleForm({ ...scheduleForm, schedule_time: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 'var(--text-sm)', fontWeight: 600, marginBottom: 4 }}>Lokasi Ruangan / Tempat</label>
+                  <input
+                    type="text"
+                    required
+                    className="filter-select"
+                    style={{ width: '100%' }}
+                    value={scheduleForm.venue}
+                    onChange={e => setScheduleForm({ ...scheduleForm, venue: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 'var(--text-sm)', fontWeight: 600, marginBottom: 4 }}>Catatan / Agenda Pemeriksaan</label>
+                  <textarea
+                    rows={3}
+                    className="filter-select"
+                    style={{ width: '100%', resize: 'vertical' }}
+                    value={scheduleForm.notes}
+                    onChange={e => setScheduleForm({ ...scheduleForm, notes: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-outline" onClick={() => setIsScheduleOpen(false)} disabled={isSubmitting}>
+                  Batal
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+                  {isSubmitting ? 'Menjadwalkan...' : 'Simpan Jadwal'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -215,4 +215,48 @@ router.get('/me', authenticate, async (req, res, next) => {
   }
 });
 
+// PUT /api/auth/profile or /me
+async function handleUpdateProfile(req, res, next) {
+  try {
+    const { name, email, position, avatar } = req.body || {};
+    const updated = await query(
+      `UPDATE users
+       SET name = COALESCE(?, name),
+           email = COALESCE(?, email),
+           position = COALESCE(?, position),
+           avatar = COALESCE(?, avatar),
+           updated_at = NOW()
+       WHERE id = ?
+       RETURNING *`,
+      [name, email, position, avatar, req.user.id]
+    );
+    res.json({ success: true, message: 'Profil berhasil diperbarui.', user: publicUser(updated[0]) });
+  } catch (err) {
+    next(err);
+  }
+}
+
+router.put('/me', authenticate, handleUpdateProfile);
+router.put('/profile', authenticate, handleUpdateProfile);
+
+// PUT /api/auth/password
+router.put('/password', authenticate, async (req, res, next) => {
+  try {
+    const { current_password, new_password } = req.body || {};
+    if (!current_password || !new_password) {
+      return res.status(400).json({ success: false, message: 'Kata sandi lama dan baru wajib diisi.' });
+    }
+
+    const rows = await query('SELECT password_hash FROM users WHERE id = ? LIMIT 1', [req.user.id]);
+    if (rows.length === 0 || rows[0].password_hash !== current_password) {
+      return res.status(400).json({ success: false, message: 'Kata sandi saat ini tidak cocok.' });
+    }
+
+    await query('UPDATE users SET password_hash = ?, updated_at = NOW() WHERE id = ?', [new_password, req.user.id]);
+    res.json({ success: true, message: 'Kata sandi berhasil diperbarui.' });
+  } catch (err) {
+    next(err);
+  }
+});
+
 export default router;

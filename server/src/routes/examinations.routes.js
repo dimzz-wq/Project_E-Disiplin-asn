@@ -46,17 +46,34 @@ router.get('/', async (req, res, next) => {
 // POST /api/examinations  (schedule an examination)
 router.post('/', async (req, res, next) => {
   try {
-    const {
+    let {
       case_id, subject_employee_id, examiner_id,
-      schedule_time, venue, notes, status = 'terjadwal',
+      schedule_time, examination_date, venue, location,
+      notes, conclusion, recommendation, status = 'terjadwal',
     } = req.body || {};
 
+    if (!case_id) {
+      return res.status(400).json({ success: false, message: 'case_id wajib diisi.' });
+    }
+
+    if (!subject_employee_id) {
+      const cRows = await query('SELECT subject_employee_id FROM cases WHERE id = ? LIMIT 1', [case_id]);
+      if (cRows.length > 0) {
+        subject_employee_id = cRows[0].subject_employee_id;
+      }
+    }
+
+    examiner_id = examiner_id || req.user.id;
+    schedule_time = schedule_time || examination_date || new Date().toISOString();
+    venue = venue || location || 'Ruang Pemeriksaan';
+
+    const fullNotes = [notes, conclusion ? `Kesimpulan: ${conclusion}` : null, recommendation ? `Rekomendasi: ${recommendation}` : null]
+      .filter(Boolean)
+      .join('\n');
+
     const errors = [];
-    if (!case_id) errors.push('case_id wajib diisi');
     if (!subject_employee_id) errors.push('subject_employee_id wajib diisi');
     if (!examiner_id) errors.push('examiner_id wajib diisi');
-    if (!schedule_time) errors.push('schedule_time wajib diisi');
-    if (!venue || String(venue).trim().length < 3) errors.push('venue minimal 3 karakter');
     if (errors.length) {
       return res.status(400).json({ success: false, message: 'Validasi gagal.', error: errors.join('; ') });
     }
@@ -79,7 +96,7 @@ router.post('/', async (req, res, next) => {
        (exam_no, case_id, subject_employee_id, examiner_id, schedule_time, venue, status, notes)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
        RETURNING id`,
-      [exam_no, case_id, subject_employee_id, examiner_id, schedule_time, venue.trim(), status, notes || null]
+      [exam_no, case_id, subject_employee_id, examiner_id, schedule_time, venue.trim(), status, fullNotes || null]
     );
 
     const caseRows = await query('SELECT case_no FROM cases WHERE id = ? LIMIT 1', [case_id]);

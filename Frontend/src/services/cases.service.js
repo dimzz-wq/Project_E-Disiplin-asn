@@ -4,6 +4,7 @@ export const casesService = {
   getAll:       (params)     => api.get(withQuery('/cases', params)),
   getById:      (id)         => api.get(`/cases/${id}`),
   create:       (data)       => api.post('/cases', data),
+  update:       (id, data)   => api.put(`/cases/${id}`, data),
   updateStatus: (id, data)   => api.patch(`/cases/${id}/status`, data),
   addTimeline:  (id, data)   => api.post(`/cases/${id}/timeline`, data),
 };

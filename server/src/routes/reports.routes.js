@@ -58,22 +58,33 @@ router.get('/', async (req, res, next) => {
 // POST /api/reports  (create)
 router.post('/', async (req, res, next) => {
   try {
-    const {
+    let {
       reported_employee_id,
+      reported_nip,
       category,
       title,
       description,
       incident_date,
       incident_location,
+      location,
       priority = 'sedang',
     } = req.body || {};
 
+    if (!reported_employee_id && reported_nip) {
+      const empByNip = await query('SELECT id FROM employees WHERE nip = ? LIMIT 1', [String(reported_nip).trim()]);
+      if (empByNip && empByNip.length > 0) {
+        reported_employee_id = empByNip[0].id;
+      }
+    }
+
+    if (category === 'disiplin_kerja') category = 'kehadiran';
+    if (!CATEGORIES.includes(category)) category = 'lainnya';
+
     const errors = [];
     if (!reported_employee_id) errors.push('reported_employee_id wajib diisi');
-    if (!category || !CATEGORIES.includes(category)) errors.push(`category harus salah satu dari: ${CATEGORIES.join(', ')}`);
     if (!title || title.trim().length < 3) errors.push('title minimal 3 karakter');
     if (!description || description.trim().length < 5) errors.push('description minimal 5 karakter');
-    if (priority && !PRIORITIES.includes(priority)) errors.push(`priority harus salah satu dari: ${PRIORITIES.join(', ')}`);
+    if (priority && !PRIORITIES.includes(priority)) priority = 'sedang';
     if (errors.length) {
       return res.status(400).json({ success: false, message: 'Validasi gagal.', error: errors.join('; ') });
     }
@@ -111,7 +122,7 @@ router.post('/', async (req, res, next) => {
         title.trim(),
         description.trim(),
         incident_date || null,
-        incident_location || null,
+        incident_location || location || null,
         priority,
       ]
     );
@@ -157,5 +168,63 @@ router.get('/:id', async (req, res, next) => {
     next(err);
   }
 });
+
+// PATCH /api/reports/:id/status & PATCH /api/reports/:id
+async function handleUpdateReport(req, res, next) {
+  try {
+    let { status, notes, priority } = req.body || {};
+
+    const STATUS_MAP = {
+      investigating: 'diverifikasi',
+      diproses: 'diverifikasi',
+      proses: 'diverifikasi',
+      verified: 'diverifikasi',
+      diverifikasi: 'diverifikasi',
+      diajukan: 'diajukan',
+      draft: 'draft',
+      ditolak: 'ditolak',
+      rejected: 'ditolak',
+      ditingkatkan_ke_kasus: 'ditingkatkan_ke_kasus',
+      kasus: 'ditingkatkan_ke_kasus'
+    };
+
+    const existing = await query('SELECT * FROM reports WHERE id = ? LIMIT 1', [req.params.id]);
+    if (existing.length === 0) {
+      return res.status(404).json({ success: false, message: 'Laporan tidak ditemukan.' });
+    }
+
+    const newStatus = status ? (STATUS_MAP[status] || status) : existing[0].status;
+
+    const updated = await query(
+      `UPDATE reports
+       SET status = ?,
+           priority = COALESCE(?, priority),
+           updated_at = NOW()
+       WHERE id = ?
+       RETURNING *`,
+      [newStatus, priority || null, req.params.id]
+    );
+
+    await createAuditLog({
+      userId: req.user.id,
+      userName: req.user.name,
+      action: 'UPDATE_REPORT',
+      detail: `Laporan ${existing[0].report_no}: status diubah ke ${newStatus}${notes ? ` (Catatan: ${notes})` : ''}`,
+      module: 'reports',
+      ipAddress: getClientIp(req),
+    });
+
+    res.json({
+      success: true,
+      message: 'Laporan berhasil diperbarui.',
+      data: updated[0]
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+router.patch('/:id/status', handleUpdateReport);
+router.patch('/:id', handleUpdateReport);
 
 export default router;

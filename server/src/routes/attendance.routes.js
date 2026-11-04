@@ -85,4 +85,40 @@ router.get('/summary', async (req, res, next) => {
   }
 });
 
+// POST /api/attendance (Catat Presensi / Check-in)
+router.post('/', async (req, res, next) => {
+  try {
+    const { employee_id, date, status = 'hadir', time_in, time_out, notes } = req.body || {};
+    const empId = employee_id || req.user.id;
+    const attDate = date || new Date().toISOString().split('T')[0];
+    const nowTime = new Date().toTimeString().split(' ')[0];
+
+    // Check if attendance already exists for today
+    const existing = await query('SELECT id FROM attendance WHERE employee_id = ? AND date = ? LIMIT 1', [empId, attDate]);
+    if (existing.length > 0) {
+      const updated = await query(
+        `UPDATE attendance
+         SET status = COALESCE(?, status),
+             time_out = COALESCE(?, time_out),
+             notes = COALESCE(?, notes)
+         WHERE id = ?
+         RETURNING *`,
+        [status, time_out || nowTime, notes, existing[0].id]
+      );
+      return res.json({ success: true, message: 'Presensi berhasil diperbarui.', data: updated[0] });
+    }
+
+    const inserted = await query(
+      `INSERT INTO attendance (employee_id, date, status, time_in, time_out, notes)
+       VALUES (?, ?, ?, ?, ?, ?)
+       RETURNING *`,
+      [empId, attDate, status, time_in || nowTime, time_out || null, notes || 'Presensi Mandiri ASN']
+    );
+
+    res.status(201).json({ success: true, message: 'Presensi berhasil dicatat.', data: inserted[0] });
+  } catch (err) {
+    next(err);
+  }
+});
+
 export default router;

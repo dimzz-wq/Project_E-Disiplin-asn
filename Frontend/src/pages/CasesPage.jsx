@@ -2,9 +2,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   FolderOpen, Search, Eye, ChevronLeft, ChevronRight,
-  AlertTriangle, CheckCircle, Clock, UserCheck, RefreshCw, Plus
+  AlertTriangle, CheckCircle, Clock, UserCheck, RefreshCw, Plus,
+  X, CheckCircle2
 } from 'lucide-react';
-import { casesService, reportsService } from '../services';
+import { casesService, reportsService, employeesService } from '../services';
 
 const CASE_STATUS_LABELS = {
   baru:             'Baru',
@@ -52,16 +53,30 @@ const PRIORITY_BADGE = {
 
 export default function CasesPage() {
   const navigate = useNavigate();
-  const [search, setSearch]           = useState('');
+  const [search, setSearch]             = useState('');
   const [filterStatus, setFilterStatus] = useState('');
-  const [activeTab, setActiveTab]     = useState('cases');
-  const [loading, setLoading]         = useState(true);
-  const [error, setError]             = useState(null);
+  const [activeTab, setActiveTab]       = useState('cases');
+  const [loading, setLoading]           = useState(true);
+  const [error, setError]               = useState(null);
+  const [feedback, setFeedback]         = useState(null);
 
-  const [cases, setCases]             = useState([]);
-  const [reports, setReports]         = useState([]);
-  const [casesPag, setCasesPag]       = useState({ page: 1, total: 0, total_pages: 1, limit: 20 });
-  const [reportsPag, setReportsPag]   = useState({ page: 1, total: 0, total_pages: 1, limit: 20 });
+  const [cases, setCases]               = useState([]);
+  const [reports, setReports]           = useState([]);
+  const [employees, setEmployees]       = useState([]);
+  const [casesPag, setCasesPag]         = useState({ page: 1, total: 0, total_pages: 1, limit: 20 });
+  const [reportsPag, setReportsPag]     = useState({ page: 1, total: 0, total_pages: 1, limit: 20 });
+
+  // Create Case Modal
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [newCase, setNewCase]           = useState({
+    subject_employee_id: '',
+    title: '',
+    description: '',
+    level: 'ringan',
+    priority: 'sedang',
+    deadline: '',
+  });
 
   const fetchData = useCallback(async (page = 1) => {
     setLoading(true);
@@ -96,7 +111,57 @@ export default function CasesPage() {
     return () => clearTimeout(t);
   }, [fetchData]);
 
-  // Summary counts from loaded data
+  // Load employees for dropdown
+  useEffect(() => {
+    if (isCreateOpen && employees.length === 0) {
+      employeesService.getAll({ limit: 100 }).then(res => {
+        if (res.success && Array.isArray(res.data)) {
+          setEmployees(res.data);
+          if (res.data.length > 0 && !newCase.subject_employee_id) {
+            setNewCase(prev => ({ ...prev, subject_employee_id: res.data[0].id }));
+          }
+        }
+      }).catch(() => {});
+    }
+  }, [isCreateOpen, employees.length, newCase.subject_employee_id]);
+
+  const showNotification = (msg, isErr = false) => {
+    setFeedback({ msg, isErr });
+    setTimeout(() => setFeedback(null), 4000);
+  };
+
+  const handleCreateCase = async (e) => {
+    e.preventDefault();
+    if (!newCase.subject_employee_id || !newCase.title) {
+      return showNotification('Pegawai dan Judul kasus wajib diisi.', true);
+    }
+    setIsSubmitting(true);
+    try {
+      const res = await casesService.create(newCase);
+      if (res.success) {
+        showNotification('Kasus disiplin baru berhasil didaftarkan.');
+        setIsCreateOpen(false);
+        setNewCase({
+          subject_employee_id: '',
+          title: '',
+          description: '',
+          level: 'ringan',
+          priority: 'sedang',
+          deadline: '',
+        });
+        setActiveTab('cases');
+        fetchData(1);
+      } else {
+        showNotification(res.message || 'Gagal membuat kasus.', true);
+      }
+    } catch (err) {
+      showNotification(err.message || 'Terjadi kesalahan sistem.', true);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Summary counts
   const activeCases    = cases.filter(c => !['selesai', 'dibatalkan'].includes(c.status)).length;
   const examCases      = cases.filter(c => c.status === 'pemeriksaan').length;
   const pendingCases   = cases.filter(c => c.status === 'putusan').length;
@@ -111,10 +176,34 @@ export default function CasesPage() {
           <h1 className="page-title">Manajemen Kasus</h1>
           <p className="page-subtitle">Kelola seluruh kasus dan laporan pelanggaran disiplin</p>
         </div>
-        <button className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <Plus size={16} /> Kasus Baru
-        </button>
+        <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
+          <button
+            className="btn btn-primary"
+            onClick={() => setIsCreateOpen(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+          >
+            <Plus size={16} /> Kasus Baru
+          </button>
+        </div>
       </div>
+
+      {feedback && (
+        <div style={{
+          padding: 'var(--space-3) var(--space-4)',
+          borderRadius: 'var(--border-radius)',
+          marginBottom: 'var(--space-4)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          fontSize: 'var(--text-sm)',
+          background: feedback.isErr ? 'var(--danger-bg)' : '#e6f7ed',
+          color: feedback.isErr ? 'var(--danger)' : '#0d7a3e',
+          border: `1px solid ${feedback.isErr ? '#fca5a5' : '#86efac'}`
+        }}>
+          {feedback.isErr ? <AlertTriangle size={16} /> : <CheckCircle2 size={16} />}
+          <span>{feedback.msg}</span>
+        </div>
+      )}
 
       {/* Summary */}
       <div className="grid-stats" style={{ gridTemplateColumns: 'repeat(4, 1fr)', marginBottom: 'var(--space-5)' }}>
@@ -152,17 +241,16 @@ export default function CasesPage() {
               <Search className="search-icon" size={16} />
               <input
                 type="text"
-                placeholder={activeTab === 'cases' ? 'Cari No. Kasus, judul, atau pegawai...' : 'Cari No. Laporan atau pegawai...'}
+                placeholder={activeTab === 'cases' ? 'Cari nomor kasus atau judul...' : 'Cari nomor laporan atau judul...'}
                 value={search}
                 onChange={e => setSearch(e.target.value)}
               />
             </div>
             <select className="filter-select" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
               <option value="">Semua Status</option>
-              {activeTab === 'cases'
-                ? Object.entries(CASE_STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)
-                : Object.entries(REPORT_STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)
-              }
+              {Object.entries(activeTab === 'cases' ? CASE_STATUS_LABELS : REPORT_STATUS_LABELS).map(([k, v]) => (
+                <option key={k} value={k}>{v}</option>
+              ))}
             </select>
             <button className="btn btn-ghost btn-sm" onClick={() => fetchData(1)}
               style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -182,39 +270,43 @@ export default function CasesPage() {
               <p>Memuat data...</p>
             </div>
           ) : activeTab === 'cases' ? (
-            // ── Cases Table ──
+            /* Cases Table */
             <div className="table-container">
               <table className="data-table">
                 <thead>
                   <tr>
                     <th>No. Kasus</th>
-                    <th>Tanggal</th>
-                    <th>Subjek</th>
-                    <th>Unit Kerja</th>
+                    <th>Judul Kasus</th>
+                    <th>Subjek Terlapor</th>
                     <th>Tingkat</th>
+                    <th>Prioritas</th>
                     <th>Status</th>
-                    <th>PIC</th>
                     <th>Tenggat</th>
                     <th>Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
                   {cases.length === 0 ? (
-                    <tr><td colSpan={9} style={{ textAlign: 'center', padding: 'var(--space-6)', color: 'var(--text-muted)' }}>Tidak ada kasus ditemukan.</td></tr>
+                    <tr><td colSpan={8} style={{ textAlign: 'center', padding: 'var(--space-6)', color: 'var(--text-muted)' }}>Belum ada kasus disiplin terdaftar.</td></tr>
                   ) : cases.map(c => (
                     <tr key={c.id}>
                       <td><span style={{ fontWeight: 700, color: 'var(--primary)', fontSize: 'var(--text-xs)' }}>{c.case_no}</span></td>
-                      <td style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
-                        {c.created_at ? new Date(c.created_at).toLocaleDateString('id-ID') : '-'}
+                      <td>
+                        <div style={{ fontWeight: 600 }}>{c.title}</div>
+                        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>{c.description ? c.description.slice(0, 60) + '...' : ''}</div>
                       </td>
                       <td>
                         <div style={{ fontWeight: 600 }}>{c.employee_name || '-'}</div>
                         <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>{c.employee_nip || ''}</div>
                       </td>
-                      <td style={{ fontSize: 'var(--text-xs)' }}>{c.unit_name || '-'}</td>
                       <td>
                         <span className={`badge ${LEVEL_BADGE[c.level] || 'badge-info'}`}>
                           {c.level ? c.level.charAt(0).toUpperCase() + c.level.slice(1) : '-'}
+                        </span>
+                      </td>
+                      <td>
+                        <span className={`badge ${PRIORITY_BADGE[c.priority] || 'badge-info'}`}>
+                          {c.priority ? c.priority.charAt(0).toUpperCase() + c.priority.slice(1) : '-'}
                         </span>
                       </td>
                       <td>
@@ -222,15 +314,11 @@ export default function CasesPage() {
                           {CASE_STATUS_LABELS[c.status] || c.status}
                         </span>
                       </td>
-                      <td style={{ fontSize: 'var(--text-xs)' }}>{c.pic_name?.split(',')[0] || '-'}</td>
-                      <td>
-                        {c.deadline
-                          ? <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>{new Date(c.deadline).toLocaleDateString('id-ID')}</span>
-                          : <span style={{ color: 'var(--text-muted)', fontSize: 'var(--text-xs)' }}>-</span>
-                        }
+                      <td style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
+                        {c.deadline ? new Date(c.deadline).toLocaleDateString('id-ID') : '-'}
                       </td>
                       <td>
-                        <button className="btn btn-sm btn-ghost btn-icon" onClick={() => navigate(`/cases/${c.id}`)}>
+                        <button className="btn btn-sm btn-ghost btn-icon" onClick={() => navigate(`/cases/${c.id}`)} title="Buka Detail">
                           <Eye size={14} />
                         </button>
                       </td>
@@ -240,31 +328,36 @@ export default function CasesPage() {
               </table>
             </div>
           ) : (
-            // ── Reports Table ──
+            /* Reports Table */
             <div className="table-container">
               <table className="data-table">
                 <thead>
                   <tr>
                     <th>No. Laporan</th>
-                    <th>Tanggal</th>
-                    <th>Terlapor</th>
                     <th>Perihal</th>
+                    <th>Terlapor</th>
+                    <th>Pelapor</th>
                     <th>Prioritas</th>
                     <th>Status</th>
+                    <th>Tanggal</th>
                     <th>Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
                   {reports.length === 0 ? (
-                    <tr><td colSpan={7} style={{ textAlign: 'center', padding: 'var(--space-6)', color: 'var(--text-muted)' }}>Tidak ada laporan ditemukan.</td></tr>
+                    <tr><td colSpan={8} style={{ textAlign: 'center', padding: 'var(--space-6)', color: 'var(--text-muted)' }}>Belum ada laporan pelanggaran.</td></tr>
                   ) : reports.map(r => (
                     <tr key={r.id}>
                       <td><span style={{ fontWeight: 700, color: 'var(--primary)', fontSize: 'var(--text-xs)' }}>{r.report_no}</span></td>
-                      <td style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
-                        {r.created_at ? new Date(r.created_at).toLocaleDateString('id-ID') : '-'}
+                      <td>
+                        <div style={{ fontWeight: 600 }}>{r.title}</div>
+                        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>{r.category || '-'}</div>
                       </td>
-                      <td style={{ fontWeight: 600 }}>{r.employee_name || '-'}</td>
-                      <td style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.title}</td>
+                      <td>
+                        <div style={{ fontWeight: 600 }}>{r.reported_name || '-'}</div>
+                        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>{r.reported_nip || ''}</div>
+                      </td>
+                      <td style={{ fontSize: 'var(--text-xs)' }}>{r.reporter_name || 'Anonim'}</td>
                       <td>
                         <span className={`badge ${PRIORITY_BADGE[r.priority] || 'badge-info'}`}>
                           {r.priority ? r.priority.charAt(0).toUpperCase() + r.priority.slice(1) : '-'}
@@ -275,8 +368,11 @@ export default function CasesPage() {
                           {REPORT_STATUS_LABELS[r.status] || r.status}
                         </span>
                       </td>
+                      <td style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
+                        {r.created_at ? new Date(r.created_at).toLocaleDateString('id-ID') : '-'}
+                      </td>
                       <td>
-                        <button className="btn btn-sm btn-ghost btn-icon" onClick={() => navigate(`/cases/${r.id}`)}>
+                        <button className="btn btn-sm btn-ghost btn-icon" onClick={() => navigate(`/cases/${r.id}`)} title="Buka Detail">
                           <Eye size={14} />
                         </button>
                       </td>
@@ -308,6 +404,109 @@ export default function CasesPage() {
           </div>
         </div>
       </div>
+
+      {/* Create Case Modal */}
+      {isCreateOpen && (
+        <div className="modal-backdrop" onClick={() => !isSubmitting && setIsCreateOpen(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 560 }}>
+            <div className="modal-header">
+              <h3 className="modal-title">Daftarkan Kasus Disiplin Baru</h3>
+              <button className="modal-close" onClick={() => setIsCreateOpen(false)}>
+                <X size={18} />
+              </button>
+            </div>
+            <form onSubmit={handleCreateCase}>
+              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 'var(--text-sm)', fontWeight: 600, marginBottom: 4 }}>Subjek Pegawai Terlapor</label>
+                  <select
+                    className="filter-select"
+                    style={{ width: '100%' }}
+                    value={newCase.subject_employee_id}
+                    onChange={e => setNewCase({ ...newCase, subject_employee_id: e.target.value })}
+                  >
+                    {employees.map(emp => (
+                      <option key={emp.id} value={emp.id}>
+                        {emp.name} ({emp.nip}) - {emp.position}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 'var(--text-sm)', fontWeight: 600, marginBottom: 4 }}>Judul / Perihal Kasus</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Contoh: Dugaan Pelanggaran Disiplin Jam Kerja dan Presensi"
+                    className="filter-select"
+                    style={{ width: '100%' }}
+                    value={newCase.title}
+                    onChange={e => setNewCase({ ...newCase, title: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 'var(--text-sm)', fontWeight: 600, marginBottom: 4 }}>Deskripsi / Uraian Kasus</label>
+                  <textarea
+                    rows={3}
+                    placeholder="Jelaskan ringkasan kronologi dan pokok dugaan pelanggaran..."
+                    className="filter-select"
+                    style={{ width: '100%', resize: 'vertical' }}
+                    value={newCase.description}
+                    onChange={e => setNewCase({ ...newCase, description: e.target.value })}
+                  />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 'var(--text-sm)', fontWeight: 600, marginBottom: 4 }}>Tingkat Dugaan Pelanggaran</label>
+                    <select
+                      className="filter-select"
+                      style={{ width: '100%' }}
+                      value={newCase.level}
+                      onChange={e => setNewCase({ ...newCase, level: e.target.value })}
+                    >
+                      <option value="ringan">Ringan (PP 94/2021)</option>
+                      <option value="sedang">Sedang (PP 94/2021)</option>
+                      <option value="berat">Berat (PP 94/2021)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 'var(--text-sm)', fontWeight: 600, marginBottom: 4 }}>Prioritas Kasus</label>
+                    <select
+                      className="filter-select"
+                      style={{ width: '100%' }}
+                      value={newCase.priority}
+                      onChange={e => setNewCase({ ...newCase, priority: e.target.value })}
+                    >
+                      <option value="rendah">Rendah</option>
+                      <option value="sedang">Sedang</option>
+                      <option value="tinggi">Tinggi</option>
+                      <option value="kritis">Kritis</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 'var(--text-sm)', fontWeight: 600, marginBottom: 4 }}>Tenggat Penanganan (Opsional)</label>
+                  <input
+                    type="date"
+                    className="filter-select"
+                    style={{ width: '100%' }}
+                    value={newCase.deadline}
+                    onChange={e => setNewCase({ ...newCase, deadline: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-outline" onClick={() => setIsCreateOpen(false)} disabled={isSubmitting}>
+                  Batal
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+                  {isSubmitting ? 'Mendaftarkan...' : 'Daftarkan Kasus'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

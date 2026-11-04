@@ -86,4 +86,85 @@ router.get('/:id', async (req, res, next) => {
   }
 });
 
+// POST /api/employees (Tambah Pegawai Baru)
+router.post('/', async (req, res, next) => {
+  try {
+    const { nip, name, unit_id = 1, position = 'Staff', type = 'PNS', rank_grade = 'III/a', status = 'active', join_date } = req.body || {};
+    if (!nip || !name) {
+      return res.status(400).json({ success: false, message: 'NIP dan Nama pegawai wajib diisi.' });
+    }
+
+    const checkExisting = await query('SELECT id FROM employees WHERE nip = ? LIMIT 1', [nip.trim()]);
+    if (checkExisting.length > 0) {
+      return res.status(400).json({ success: false, message: `Pegawai dengan NIP ${nip} sudah terdaftar.` });
+    }
+
+    const insertResult = await query(
+      `INSERT INTO employees (nip, name, unit_id, position, type, rank_grade, status, join_date)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+       RETURNING *`,
+      [nip.trim(), name.trim(), parseInt(unit_id, 10) || 1, position.trim(), type, rank_grade, status, join_date || new Date().toISOString().split('T')[0]]
+    );
+
+    res.status(201).json({
+      success: true,
+      message: 'Pegawai berhasil ditambahkan.',
+      data: insertResult[0],
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PUT /api/employees/:id (Update Pegawai)
+router.put('/:id', async (req, res, next) => {
+  try {
+    const { name, unit_id, position, type, rank_grade, status } = req.body || {};
+    const existing = await query('SELECT id FROM employees WHERE id = ? LIMIT 1', [req.params.id]);
+    if (existing.length === 0) {
+      return res.status(404).json({ success: false, message: 'Pegawai tidak ditemukan.' });
+    }
+
+    const updateResult = await query(
+      `UPDATE employees
+       SET name = COALESCE(?, name),
+           unit_id = COALESCE(?, unit_id),
+           position = COALESCE(?, position),
+           type = COALESCE(?, type),
+           rank_grade = COALESCE(?, rank_grade),
+           status = COALESCE(?, status)
+       WHERE id = ?
+       RETURNING *`,
+      [name, unit_id, position, type, rank_grade, status, req.params.id]
+    );
+
+    res.json({
+      success: true,
+      message: 'Data pegawai berhasil diperbarui.',
+      data: updateResult[0],
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// DELETE /api/employees/:id (Hapus Pegawai)
+router.delete('/:id', async (req, res, next) => {
+  try {
+    const existing = await query('SELECT id, name FROM employees WHERE id = ? LIMIT 1', [req.params.id]);
+    if (existing.length === 0) {
+      return res.status(404).json({ success: false, message: 'Pegawai tidak ditemukan.' });
+    }
+
+    await query('DELETE FROM employees WHERE id = ?', [req.params.id]);
+
+    res.json({
+      success: true,
+      message: `Pegawai ${existing[0].name} berhasil dihapus.`,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 export default router;
