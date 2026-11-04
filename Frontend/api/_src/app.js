@@ -113,7 +113,7 @@ if (isProd && hasFrontendBuild) {
   );
 
   // Catch-all: semua route non-API → index.html (React Router SPA)
-  app.get('*', (req, res, next) => {
+  app.get('(.*)', (req, res, next) => {
     if (req.path.startsWith('/api/')) return next();
     res.sendFile(path.join(distPath, 'index.html'));
   });
