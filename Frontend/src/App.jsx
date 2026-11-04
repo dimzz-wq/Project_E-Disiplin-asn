@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import AppLayout from './components/AppLayout.jsx';
 import LoadingScreen from './components/LoadingScreen.jsx';
+import HomePage from './pages/HomePage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import AttendancePage from './pages/AttendancePage.jsx';
@@ -55,6 +56,7 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <Routes>
+          <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPageWrapper />} />
           <Route path="/*" element={<ProtectedRoutes />} />
         </Routes>

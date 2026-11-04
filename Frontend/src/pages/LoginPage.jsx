@@ -1,6 +1,7 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Shield, Lock, Eye, EyeOff, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Shield, Lock, Eye, EyeOff, CheckCircle, AlertTriangle, ArrowLeft } from 'lucide-react';
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -75,6 +76,22 @@ export default function LoginPage() {
 
       <div className="login-right">
         <form className="login-form" onSubmit={handleSubmit}>
+          <Link
+            to="/"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              color: 'var(--text-secondary)',
+              textDecoration: 'none',
+              fontSize: 'var(--text-sm)',
+              marginBottom: 'var(--space-3)',
+              fontWeight: 600,
+            }}
+          >
+            <ArrowLeft size={16} />
+            Kembali ke Beranda
+          </Link>
           <h2>Masuk</h2>
           <p>Masukkan kredensial Anda untuk mengakses sistem.</p>
 
