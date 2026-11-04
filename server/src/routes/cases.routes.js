@@ -126,7 +126,18 @@ router.get('/:id', async (req, res, next) => {
 // PATCH /api/cases/:id/status
 router.patch('/:id/status', async (req, res, next) => {
   try {
-    const { status, note } = req.body || {};
+    let { status, note } = req.body || {};
+    const STATUS_MAP = {
+      in_progress: 'pemeriksaan',
+      investigation: 'penyelidikan',
+      review: 'pemeriksaan',
+      decision: 'putusan',
+      completed: 'selesai',
+      canceled: 'dibatalkan',
+      cancelled: 'dibatalkan'
+    };
+    if (status && STATUS_MAP[status]) status = STATUS_MAP[status];
+
     if (!status || !CASE_STATUSES.includes(status)) {
       return res.status(400).json({ success: false, message: `Status tidak valid. Pilihan: ${CASE_STATUSES.join(', ')}` });
     }
@@ -168,13 +179,16 @@ router.post('/', async (req, res, next) => {
       subject_employee_id, employee_id,
       title, description, level = 'ringan',
       priority = 'sedang', status = 'baru',
-      pic_id, deadline, report_id
+      pic_id, deadline, report_id,
+      category, violation_type
     } = req.body || {};
 
     const targetEmpId = subject_employee_id || employee_id;
     if (!targetEmpId || !title) {
       return res.status(400).json({ success: false, message: 'Pegawai terlapor dan judul kasus wajib diisi.' });
     }
+
+    const finalCategory = category || violation_type || 'kehadiran';
 
     // Generate case number: KASUS-YYYY-NNNN
     const year = new Date().getFullYear();
@@ -188,13 +202,14 @@ router.post('/', async (req, res, next) => {
     const case_no = `KASUS-${year}-${String(nextNum).padStart(4, '0')}`;
 
     const inserted = await query(
-      `INSERT INTO cases (case_no, report_id, subject_employee_id, title, description, level, priority, status, pic_id, deadline)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `INSERT INTO cases (case_no, report_id, subject_employee_id, category, title, description, level, priority, status, pic_id, deadline)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        RETURNING *`,
       [
         case_no,
         report_id || null,
         targetEmpId,
+        finalCategory,
         title.trim(),
         description ? description.trim() : 'Kasus baru didaftarkan',
         level,
@@ -220,7 +235,18 @@ router.post('/', async (req, res, next) => {
 // PUT /api/cases/:id (Update Kasus)
 router.put('/:id', async (req, res, next) => {
   try {
-    const { title, description, level, priority, status, pic_id, deadline, notes } = req.body || {};
+    let { title, description, level, priority, status, pic_id, deadline, notes } = req.body || {};
+    const STATUS_MAP = {
+      in_progress: 'pemeriksaan',
+      investigation: 'penyelidikan',
+      review: 'pemeriksaan',
+      decision: 'putusan',
+      completed: 'selesai',
+      canceled: 'dibatalkan',
+      cancelled: 'dibatalkan'
+    };
+    if (status && STATUS_MAP[status]) status = STATUS_MAP[status];
+
     const existing = await query('SELECT * FROM cases WHERE id = ? LIMIT 1', [req.params.id]);
     if (existing.length === 0) {
       return res.status(404).json({ success: false, message: 'Kasus tidak ditemukan.' });

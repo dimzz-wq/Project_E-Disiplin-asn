@@ -88,10 +88,22 @@ router.get('/summary', async (req, res, next) => {
 // POST /api/attendance (Catat Presensi / Check-in)
 router.post('/', async (req, res, next) => {
   try {
-    const { employee_id, date, status = 'hadir', time_in, time_out, notes } = req.body || {};
+    let { employee_id, date, status = 'hadir', time_in, check_in, time_out, notes, note } = req.body || {};
     const empId = employee_id || req.user.id;
     const attDate = date || new Date().toISOString().split('T')[0];
     const nowTime = new Date().toTimeString().split(' ')[0];
+    const finalNote = note || notes || 'Presensi Mandiri ASN';
+
+    let finalStatus = (status || 'hadir').toLowerCase();
+    if (finalStatus === 'present') finalStatus = 'hadir';
+    if (finalStatus === 'late') finalStatus = 'terlambat';
+    if (finalStatus === 'permission') finalStatus = 'ijin';
+    if (finalStatus === 'sick') finalStatus = 'sakit';
+    if (!['hadir', 'terlambat', 'ijin', 'sakit', 'alpa'].includes(finalStatus)) {
+      finalStatus = 'hadir';
+    }
+
+    const checkInTime = time_in || check_in || nowTime;
 
     // Check if attendance already exists for today
     const existing = await query('SELECT id FROM attendance WHERE employee_id = ? AND date = ? LIMIT 1', [empId, attDate]);
@@ -100,19 +112,19 @@ router.post('/', async (req, res, next) => {
         `UPDATE attendance
          SET status = COALESCE(?, status),
              time_out = COALESCE(?, time_out),
-             notes = COALESCE(?, notes)
+             note = COALESCE(?, note)
          WHERE id = ?
          RETURNING *`,
-        [status, time_out || nowTime, notes, existing[0].id]
+        [finalStatus, time_out || nowTime, finalNote, existing[0].id]
       );
       return res.json({ success: true, message: 'Presensi berhasil diperbarui.', data: updated[0] });
     }
 
     const inserted = await query(
-      `INSERT INTO attendance (employee_id, date, status, time_in, time_out, notes)
+      `INSERT INTO attendance (employee_id, date, status, time_in, time_out, note)
        VALUES (?, ?, ?, ?, ?, ?)
        RETURNING *`,
-      [empId, attDate, status, time_in || nowTime, time_out || null, notes || 'Presensi Mandiri ASN']
+      [empId, attDate, finalStatus, checkInTime, time_out || null, finalNote]
     );
 
     res.status(201).json({ success: true, message: 'Presensi berhasil dicatat.', data: inserted[0] });
