@@ -100,7 +100,7 @@ CREATE TABLE IF NOT EXISTS reports (
   priority VARCHAR(20) DEFAULT 'sedang'
     CHECK (priority IN ('rendah', 'sedang', 'tinggi', 'kritis')),
   status VARCHAR(30) DEFAULT 'diajukan'
-    CHECK (status IN ('diajukan', 'diverifikasi', 'ditolak', 'diteruskan_ke_kasus')),
+    CHECK (status IN ('draft', 'diajukan', 'diverifikasi', 'ditolak', 'ditingkatkan_ke_kasus')),
   rejection_reason TEXT,
   verified_by INT,
   verified_at TIMESTAMPTZ,
@@ -150,7 +150,6 @@ CREATE TABLE IF NOT EXISTS case_timeline (
   case_id INT NOT NULL,
   action VARCHAR(255) NOT NULL,
   actor_id INT,
-  actor_name VARCHAR(150),
   notes TEXT,
   type VARCHAR(30) DEFAULT 'status_change',
   created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
@@ -253,67 +252,87 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
 );
 
 -- ── DATA SEED (UNIT KERJA) ──────────────────────────────────
-INSERT INTO org_units (name, head_name) VALUES
-  ('Dinas Kepegawaian', 'Dr. Ahmad Suryadi'),
-  ('Bidang Pembinaan', 'Ir. Siti Rahmawati'),
-  ('Inspektorat', 'Prof. Hasan Basri'),
-  ('BKPSDM', 'Drs. Hendra Gunawan'),
-  ('Sekretariat', 'Fajar Nugroho')
-ON CONFLICT DO NOTHING;
+INSERT INTO org_units (id, name, head_name) OVERRIDING SYSTEM VALUE VALUES
+  (1, 'Dinas Kepegawaian', 'Dr. Ahmad Suryadi'),
+  (2, 'Bidang Pembinaan', 'Ir. Siti Rahmawati'),
+  (3, 'Inspektorat', 'Prof. Hasan Basri'),
+  (4, 'BKPSDM', 'Drs. Hendra Gunawan'),
+  (5, 'Sekretariat', 'Fajar Nugroho')
+ON CONFLICT (id) DO UPDATE SET
+  name = EXCLUDED.name,
+  head_name = EXCLUDED.head_name;
+
+SELECT setval(pg_get_serial_sequence('org_units', 'id'), COALESCE(MAX(id), 1)) FROM org_units;
 
 -- ── DATA SEED (USERS SISTEM) ─────────────────────────────────
 -- Catatan: password demo adalah "abcd"
-INSERT INTO users (nip, name, email, password_hash, role, unit_id, position, is_active) VALUES
-  ('198503152008011001', 'Dr. Ahmad Suryadi', 'ahmad.suryadi@instansi.go.id', 'abcd', 'admin', 1, 'Kepala Dinas', TRUE),
-  ('197812222005022003', 'Ir. Siti Rahmawati', 'siti.rahmawati@instansi.go.id', 'atasan', 2, 'Kepala Bidang', TRUE),
-  ('198807152015011002', 'Bambang Prakoso, SH', 'bambang.prakoso@instansi.go.id', 'pemeriksa', 3, 'Analis Kepegawaian', TRUE),
-  ('199102102019032001', 'Dewi Anggraeni, S.IP', 'dewi.anggraeni@instansi.go.id', 'bkpsdm', 4, 'Staff BKPSDM', TRUE),
-  ('199506082020121003', 'Rudi Hartono, S.Kom', 'rudi.hartono@instansi.go.id', 'pegawai', 5, 'Staff Administrasi', TRUE),
-  ('197611102002121004', 'Prof. Hasan Basri', 'hasan.basri@instansi.go.id', 'inspektorat', 3, 'Inspektur', TRUE)
+INSERT INTO users (id, nip, name, email, password_hash, role, unit_id, position, is_active) OVERRIDING SYSTEM VALUE VALUES
+  (1, '198503152008011001', 'Dr. Ahmad Suryadi', 'ahmad.suryadi@instansi.go.id', 'abcd', 'admin', 1, 'Kepala Dinas', TRUE),
+  (2, '197812222005022003', 'Ir. Siti Rahmawati', 'siti.rahmawati@instansi.go.id', 'abcd', 'atasan', 2, 'Kepala Bidang', TRUE),
+  (3, '198807152015011002', 'Bambang Prakoso, SH', 'bambang.prakoso@instansi.go.id', 'abcd', 'pemeriksa', 3, 'Analis Kepegawaian', TRUE),
+  (4, '199102102019032001', 'Dewi Anggraeni, S.IP', 'dewi.anggraeni@instansi.go.id', 'abcd', 'bkpsdm', 4, 'Staff BKPSDM', TRUE),
+  (5, '199506082020121003', 'Rudi Hartono, S.Kom', 'rudi.hartono@instansi.go.id', 'abcd', 'pegawai', 5, 'Staff Administrasi', TRUE),
+  (6, '197611102002121004', 'Prof. Hasan Basri', 'hasan.basri@instansi.go.id', 'abcd', 'inspektorat', 3, 'Inspektur', TRUE)
 ON CONFLICT (nip) DO UPDATE SET
+  id = EXCLUDED.id,
   name = EXCLUDED.name,
   email = EXCLUDED.email,
   password_hash = EXCLUDED.password_hash,
   role = EXCLUDED.role,
   position = EXCLUDED.position;
 
+SELECT setval(pg_get_serial_sequence('users', 'id'), COALESCE(MAX(id), 1)) FROM users;
+
 -- ── DATA SEED (DATA MASTER PEGAWAI) ──────────────────────────
-INSERT INTO employees (nip, name, unit_id, position, type, rank_grade, status, join_date) VALUES
-  ('198503152008011001', 'Dr. Ahmad Suryadi', 1, 'Kepala Dinas', 'PNS', 'IV/a', 'active', '2008-01-15'),
-  ('197812222005022003', 'Ir. Siti Rahmawati', 2, 'Kepala Bidang', 'PNS', 'IV/a', 'active', '2005-02-15'),
-  ('198807152015011002', 'Bambang Prakoso, SH', 3, 'Analis Kepegawaian', 'PPPK', 'III/c', 'active', '2015-01-15'),
-  ('199102102019032001', 'Dewi Anggraeni, S.IP', 4, 'Staff BKPSDM', 'PNS', 'IV/a', 'active', '2019-03-15'),
-  ('199506082020121003', 'Rudi Hartono, S.Kom', 5, 'Staff Administrasi', 'PNS', 'III/c', 'active', '2020-12-15'),
-  ('197611102002121004', 'Prof. Hasan Basri', 3, 'Inspektur', 'PPPK', 'IV/a', 'active', '2002-12-15'),
-  ('198201012006041005', 'Dra. Novi Lestari', 1, 'Kasubag Umum', 'PNS', 'III/d', 'active', '2006-04-01'),
-  ('199009172022211006', 'Fajar Nugroho', 5, 'Pranata Komputer', 'PPPK', '-', 'active', '2022-11-01'),
-  ('198605212010012007', 'Yusuf Maulana, S.IP', 2, 'Analis Kebijakan', 'PNS', 'III/b', 'active', '2010-01-01'),
-  ('199302112018011008', 'Anisa Rahayu, S.E', 4, 'Pengelola Kepegawaian', 'PPPK', '-', 'active', '2018-01-01'),
-  ('197811052002121009', 'Drs. Hendra Gunawan', 2, 'Kepala Seksi', 'PNS', 'IV/a', 'active', '2002-12-01'),
-  ('199107232020121010', 'Rizky Firmansyah, S.H', 3, 'Auditor', 'PNS', 'III/a', 'active', '2020-12-01'),
-  ('199511202019012011', 'Dian Purnama, A.Md', 5, 'Pengadministrasi', 'PPPK', '-', 'active', '2019-01-01'),
-  ('199003152014032012', 'Yuni Astuti, S.E', 1, 'Analis Keuangan', 'PNS', 'III/c', 'active', '2014-03-01'),
-  ('198705112009011013', 'Sri Wahyuni, S.Pd', 2, 'Guru Pembina', 'PNS', 'III/d', 'active', '2009-01-01'),
-  ('199406082021111014', 'Budi Santoso, S.T', 5, 'Teknisi', 'PPPK', '-', 'active', '2021-11-01')
-ON CONFLICT (nip) DO NOTHING;
+INSERT INTO employees (id, nip, name, unit_id, position, type, rank_grade, status, join_date) OVERRIDING SYSTEM VALUE VALUES
+  (1, '198503152008011001', 'Dr. Ahmad Suryadi', 1, 'Kepala Dinas', 'PNS', 'IV/a', 'active', '2008-01-15'),
+  (2, '197812222005022003', 'Ir. Siti Rahmawati', 2, 'Kepala Bidang', 'PNS', 'IV/a', 'active', '2005-02-15'),
+  (3, '198807152015011002', 'Bambang Prakoso, SH', 3, 'Analis Kepegawaian', 'PPPK', 'III/c', 'active', '2015-01-15'),
+  (4, '199102102019032001', 'Dewi Anggraeni, S.IP', 4, 'Staff BKPSDM', 'PNS', 'IV/a', 'active', '2019-03-15'),
+  (5, '199506082020121003', 'Rudi Hartono, S.Kom', 5, 'Staff Administrasi', 'PNS', 'III/c', 'active', '2020-12-15'),
+  (6, '197611102002121004', 'Prof. Hasan Basri', 3, 'Inspektur', 'PPPK', 'IV/a', 'active', '2002-12-15'),
+  (7, '198201012006041005', 'Dra. Novi Lestari', 1, 'Kasubag Umum', 'PNS', 'III/d', 'active', '2006-04-01'),
+  (8, '199009172022211006', 'Fajar Nugroho', 5, 'Pranata Komputer', 'PPPK', '-', 'active', '2022-11-01'),
+  (9, '198605212010012007', 'Yusuf Maulana, S.IP', 2, 'Analis Kebijakan', 'PNS', 'III/b', 'active', '2010-01-01'),
+  (10, '199302112018011008', 'Anisa Rahayu, S.E', 4, 'Pengelola Kepegawaian', 'PPPK', '-', 'active', '2018-01-01'),
+  (11, '197811052002121009', 'Drs. Hendra Gunawan', 2, 'Kepala Seksi', 'PNS', 'IV/a', 'active', '2002-12-01'),
+  (12, '199107232020121010', 'Rizky Firmansyah, S.H', 3, 'Auditor', 'PNS', 'III/a', 'active', '2020-12-01'),
+  (13, '199511202019012011', 'Dian Purnama, A.Md', 5, 'Pengadministrasi', 'PPPK', '-', 'active', '2019-01-01'),
+  (14, '199003152014032012', 'Yuni Astuti, S.E', 1, 'Analis Keuangan', 'PNS', 'III/c', 'active', '2014-03-01'),
+  (15, '198705112009011013', 'Sri Wahyuni, S.Pd', 2, 'Guru Pembina', 'PNS', 'III/d', 'active', '2009-01-01'),
+  (16, '199406082021111014', 'Budi Santoso, S.T', 5, 'Teknisi', 'PPPK', '-', 'active', '2021-11-01')
+ON CONFLICT (nip) DO UPDATE SET
+  name = EXCLUDED.name,
+  unit_id = EXCLUDED.unit_id,
+  position = EXCLUDED.position,
+  type = EXCLUDED.type,
+  rank_grade = EXCLUDED.rank_grade,
+  status = EXCLUDED.status,
+  join_date = EXCLUDED.join_date;
+
+SELECT setval(pg_get_serial_sequence('employees', 'id'), COALESCE(MAX(id), 1)) FROM employees;
 
 -- ── DATA SEED (CONTOH LAPORAN & KASUS) ───────────────────────
-INSERT INTO reports (report_no, reporter_id, reported_employee_id, category, title, description, incident_date, incident_location, priority, status)
-VALUES
-  ('LAP-2024-0001', 2, 5, 'kehadiran', 'Indisiplin kehadiran berulang', 'Pegawai tercatat tidak hadir tanpa keterangan sebanyak 5 hari dalam sebulan.', CURRENT_DATE - INTERVAL '10 days', 'Kantor Pusat', 'sedang', 'diteruskan_ke_kasus'),
-  ('LAP-2024-0002', 1, 9, 'kode_etik', 'Dugaan pelanggaran kode etik', 'Laporan perkataan tidak pantas saat jam kerja kepada rekan kerja.', CURRENT_DATE - INTERVAL '5 days', 'Ruang Rapat', 'sedang', 'diverifikasi'),
-  ('LAP-2024-0003', 2, 8, 'kinerja', 'Tidak mencapai target triwulan', 'Capaian SKP di bawah 60% dalam triwulan berjalan.', CURRENT_DATE - INTERVAL '15 days', 'Bidang Pembinaan', 'rendah', 'diajukan')
+INSERT INTO reports (id, report_no, reporter_id, reported_employee_id, category, title, description, incident_date, incident_location, priority, status)
+OVERRIDING SYSTEM VALUE VALUES
+  (1, 'LAP-2024-0001', 2, 5, 'kehadiran', 'Indisiplin kehadiran berulang', 'Pegawai tercatat tidak hadir tanpa keterangan sebanyak 5 hari dalam sebulan.', CURRENT_DATE - INTERVAL '10 days', 'Kantor Pusat', 'sedang', 'ditingkatkan_ke_kasus'),
+  (2, 'LAP-2024-0002', 1, 9, 'kode_etik', 'Dugaan pelanggaran kode etik', 'Laporan perkataan tidak pantas saat jam kerja kepada rekan kerja.', CURRENT_DATE - INTERVAL '5 days', 'Ruang Rapat', 'sedang', 'diverifikasi'),
+  (3, 'LAP-2024-0003', 2, 8, 'kinerja', 'Tidak mencapai target triwulan', 'Capaian SKP di bawah 60% dalam triwulan berjalan.', CURRENT_DATE - INTERVAL '15 days', 'Bidang Pembinaan', 'rendah', 'diajukan')
 ON CONFLICT (report_no) DO NOTHING;
 
-INSERT INTO cases (case_no, report_id, subject_employee_id, pic_id, category, title, description, status, priority, level)
-VALUES
-  ('KASUS-2024-0001', 1, 5, 3, 'kehadiran', 'Kasus Indisiplin Kehadiran Rudi Hartono', 'Tindak lanjut pelanggaran disiplin kehadiran kerja tanpa izin sah.', 'pemeriksaan', 'sedang', 'ringan')
+SELECT setval(pg_get_serial_sequence('reports', 'id'), COALESCE(MAX(id), 1)) FROM reports;
+
+INSERT INTO cases (id, case_no, report_id, subject_employee_id, pic_id, category, title, description, status, priority, level)
+OVERRIDING SYSTEM VALUE VALUES
+  (1, 'KASUS-2024-0001', 1, 5, 3, 'kehadiran', 'Kasus Indisiplin Kehadiran Rudi Hartono', 'Tindak lanjut pelanggaran disiplin kehadiran kerja tanpa izin sah.', 'pemeriksaan', 'sedang', 'ringan')
 ON CONFLICT (case_no) DO NOTHING;
 
-INSERT INTO case_timeline (case_id, action, actor_id, actor_name, type)
+SELECT setval(pg_get_serial_sequence('cases', 'id'), COALESCE(MAX(id), 1)) FROM cases;
+
+INSERT INTO case_timeline (case_id, action, actor_id, type)
 VALUES
-  (1, 'Kasus dibuat berdasarkan laporan LAP-2024-0001', 1, 'Dr. Ahmad Suryadi', 'created'),
-  (1, 'Pemeriksaan berkas dan bukti presensi', 3, 'Bambang Prakoso, SH', 'status_change')
+  (1, 'Kasus dibuat berdasarkan laporan LAP-2024-0001', 1, 'created'),
+  (1, 'Pemeriksaan berkas dan bukti presensi', 3, 'status_change')
 ON CONFLICT DO NOTHING;
 
 -- ── DATA SEED (CONTOH KEHADIRAN HARI INI) ───────────────────
